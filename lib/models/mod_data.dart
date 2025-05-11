@@ -13,12 +13,14 @@ part 'mod_data.g.dart';
 final class ModData {
   @UuidValueConverter()
   final UuidValue guid;
-  final List<bool> enabled;
+  bool enabled;
+  final List<bool> toggled;
   final List<int> selected;
 
   ModData._({
     required this.guid,
     required this.enabled,
+    required this.toggled,
     required this.selected,
   });
 
@@ -26,14 +28,15 @@ final class ModData {
     required this.guid,
     required int index,
   })
-    : enabled = const [],
+    : enabled = true,
+    toggled = const [],
     selected = [ index ];
 
   ModData.v1({
     required this.guid,
-    required this.enabled,
+    required this.toggled,
     required this.selected,
-  });
+  }) : enabled = true;
 
   factory ModData.fromJson(Map<String, dynamic> json) => _$ModDataFromJson(json);
 

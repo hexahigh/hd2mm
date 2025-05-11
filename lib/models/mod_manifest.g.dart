@@ -11,16 +11,6 @@ ModManifestLegacy _$ModManifestLegacyFromJson(Map<String, dynamic> json) =>
       'ModManifestLegacy',
       json,
       ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const [
-            'Guid',
-            'Name',
-            'Description',
-            'IconPath',
-            'Options',
-          ],
-        );
         final val = ModManifestLegacy(
           guid: $checkedConvert(
             'Guid',
@@ -59,10 +49,6 @@ ModSubOption _$ModSubOptionFromJson(Map<String, dynamic> json) =>
       'ModSubOption',
       json,
       ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const ['Name', 'Description', 'Image', 'Include'],
-        );
         final val = ModSubOption(
           name: $checkedConvert('Name', (v) => v as String),
           description: $checkedConvert('Description', (v) => v as String),
@@ -144,16 +130,6 @@ ModManifestV1 _$ModManifestV1FromJson(Map<String, dynamic> json) =>
       'ModManifestV1',
       json,
       ($checkedConvert) {
-        $checkKeys(
-          json,
-          allowedKeys: const [
-            'Guid',
-            'Name',
-            'Description',
-            'IconPath',
-            'Options',
-          ],
-        );
         final val = ModManifestV1(
           guid: $checkedConvert(
             'Guid',
@@ -183,6 +159,7 @@ ModManifestV1 _$ModManifestV1FromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ModManifestV1ToJson(ModManifestV1 instance) =>
     <String, dynamic>{
+      'Version': instance._version,
       'Guid': const UuidValueConverter().toJson(instance.guid),
       'Name': instance.name,
       'Description': instance.description,

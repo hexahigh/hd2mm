@@ -159,6 +159,30 @@ final class _SettingsPageState extends State<SettingsPage> {
                 onChanged: (value) => setState(() => _caseSensitive = value),
               ),
               const Divider(),
+              ListTile(
+                title: Text("Actions"),
+                subtitle: Column(
+                  spacing: 5,
+                  children: [
+                    Row(
+                      spacing: 5,
+                      children: [
+                        ElevatedButton(
+                          onPressed: _importV1Stuff,
+                          child: Text("Import V1 Manager content"),
+                        ),
+                        Expanded(
+                          child: Text(
+                            "Imports all mods and previous mod settings from MM version 1 as their own profile.",
+                            softWrap: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
               SwitchListTile(
                 title: Text("Developer mode"),
                 subtitle: _developerMode ? null : Text("This option enables features intended to help mod developers."),
@@ -514,5 +538,9 @@ final class _SettingsPageState extends State<SettingsPage> {
     }
 
     setState(() => _tempPathError = null);
+  }
+
+  Future<void> _importV1Stuff() async {
+    
   }
 }

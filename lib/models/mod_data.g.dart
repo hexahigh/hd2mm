@@ -15,8 +15,9 @@ ModData _$ModDataFromJson(Map<String, dynamic> json) => $checkedCreate(
         'Guid',
         (v) => const UuidValueConverter().fromJson(v as String),
       ),
-      enabled: $checkedConvert(
-        'Enabled',
+      enabled: $checkedConvert('Enabled', (v) => v as bool),
+      toggled: $checkedConvert(
+        'Toggled',
         (v) => (v as List<dynamic>).map((e) => e as bool).toList(),
       ),
       selected: $checkedConvert(
@@ -29,6 +30,7 @@ ModData _$ModDataFromJson(Map<String, dynamic> json) => $checkedCreate(
   fieldKeyMap: const {
     'guid': 'Guid',
     'enabled': 'Enabled',
+    'toggled': 'Toggled',
     'selected': 'Selected',
   },
 );
@@ -36,5 +38,6 @@ ModData _$ModDataFromJson(Map<String, dynamic> json) => $checkedCreate(
 Map<String, dynamic> _$ModDataToJson(ModData instance) => <String, dynamic>{
   'Guid': const UuidValueConverter().toJson(instance.guid),
   'Enabled': instance.enabled,
+  'Toggled': instance.toggled,
   'Selected': instance.selected,
 };

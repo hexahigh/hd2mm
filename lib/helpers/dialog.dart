@@ -56,6 +56,37 @@ void showWaitDialog(BuildContext context, {
   );
 }
 
+Future<bool> showConfirmDialog(BuildContext context, {
+  required String title,
+  required String question,
+}) async {
+  return await _showBaseDialog<bool>(
+    context: context,
+    title: title,
+    widget: Column(
+      spacing: 5,
+      children: [
+        Text(question),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          spacing: 3,
+          children: [
+            ElevatedButton(
+              onPressed: () => closeDialog(context, true),
+              child: Text("Yes"),
+            ),
+            ElevatedButton(
+              onPressed: () => closeDialog(context, false),
+              child: Text("No"),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ) ?? false;
+}
+
 Future<T?> _showBaseDialog<T>({
   required BuildContext context,
   required String title,

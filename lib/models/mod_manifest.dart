@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../errors/serialization_exception.dart';
 import '../helpers/uuid_converter.dart';
+import 'mod_data.dart';
 
 part 'mod_manifest.g.dart';
 
@@ -15,6 +16,20 @@ sealed class ModManifest {
       null => ModManifestLegacy.fromJson(json),
       1 => ModManifestV1.fromJson(json),
       _ => throw SerializationException("Unknown manifest version \"$version\"!"),
+    };
+  }
+
+  ModData createModData() {
+    return switch (this) {
+      ModManifestLegacy _ => ModData.legacy(
+        guid: getIdentifier() as UuidValue,
+        index: 0,
+      ),
+      ModManifestV1 _ => ModData.v1(
+        guid: getIdentifier() as UuidValue,
+        toggled: List.filled((this as ModManifestV1).options?.length ?? 0, true),
+        selected: List.filled((this as ModManifestV1).options?.length ?? 0, 0),
+      ),
     };
   }
 
@@ -32,7 +47,6 @@ sealed class ModManifest {
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
-  disallowUnrecognizedKeys: true,
 )
 final class ModManifestLegacy extends ModManifest {
   @override
@@ -92,7 +106,6 @@ final class ModManifestLegacy extends ModManifest {
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
-  disallowUnrecognizedKeys: true,
 )
 final class ModSubOption {
   final String name;
@@ -140,15 +153,18 @@ final class ModOption {
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
-  disallowUnrecognizedKeys: true,
 )
 final class ModManifestV1 extends ModManifest {
   @override
   bool get canUpgrade => false;
 
-  @JsonKey(name: "Version")
+  @JsonKey(
+    name: "Version",
+    includeToJson: true,
+    includeFromJson: false, 
+  )
   // ignore: unused_field
-  final int _version = 1;
+  final int _version;
   @UuidValueConverter()
   final UuidValue guid;
   final String name;
@@ -162,7 +178,7 @@ final class ModManifestV1 extends ModManifest {
     required this.description,
     this.iconPath,
     this.options,
-  });
+  }) : _version = 1;
 
   factory ModManifestV1.fromJson(Map<String, dynamic> json) => _$ModManifestV1FromJson(json);
 

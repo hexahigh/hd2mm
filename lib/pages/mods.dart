@@ -1,8 +1,14 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'dart:io';
+import 'package:desktop_drop/desktop_drop.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hd2mm/models/settings.dart';
 import 'package:logging/logging.dart';
+import 'package:url_launcher/url_launcher_string.dart';
+import '../components/mod_list.dart';
+import '../models/profile.dart';
 import '../services/mod_manager.dart';
 import '../helpers/dialog.dart';
 
@@ -18,7 +24,8 @@ final class _ModsPageState extends State<ModsPage> {
   bool _loading = true;
   late Settings _settings;
   late ModManagerService _manager;
-  
+  bool _dragging = false;
+
   @override
   void initState() {
     super.initState();
@@ -28,7 +35,7 @@ final class _ModsPageState extends State<ModsPage> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           spacing: 3,
@@ -39,94 +46,211 @@ final class _ModsPageState extends State<ModsPage> {
         ),
       );
     } else {
-      final _sideBar = SizedBox(
-        width: 200,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          spacing: 3,
-          children: [
-            ElevatedButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.add),
-              label: Text("Add"),
-            ),
-            ElevatedButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.create),
-              label: Text("Create"),
-            ),
-            ElevatedButton(
-              onPressed: null,
-              child: Text("Import"),
-            ),
-            ElevatedButton(
-              onPressed: null,
-              child: Text("Export"),
-            ),
-            Spacer(),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, "/help"),
-              icon: const Icon(Icons.help_outline),
-              label: Text("Help"),
-            ),
-            ElevatedButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.bug_report),
-              label: Text("Report Bug"),
-            ),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, "/about"),
-              icon: const Icon(Icons.info_outline),
-              label: Text("About"),
-            ),
-            ElevatedButton.icon(
-              onPressed: _navigateToSettings,
-              icon: const Icon(Icons.settings),
-              label: Text("Settings"),
-            ),
-          ],
-        ),
-      );
-
-      final _menuBar = Placeholder(fallbackHeight: 50);
-
-      final _centerPanel = Placeholder();
-
-      final _toolBar = Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        spacing: 3,
-        children: [
-          ElevatedButton(
-            onPressed: null,
-            child: Text("Purge"),
-          ),
-          ElevatedButton(
-            onPressed: null,
-            child: Text("Deploy"),
-          ),
-          ElevatedButton(
-            onPressed: null,
-            child: Text("Launch HD2"),
-          ),
-        ],
-      );
-
-      return Row(
-        spacing: 5,
-        children: [
-          _sideBar,
-          Expanded(
+      if (_dragging) {
+        return DropTarget(
+          onDragExited: (_) => setState(() => _dragging = false),
+          onDragDone: _onDragDrop,
+          child: Center(
             child: Column(
-              spacing: 5,
+              mainAxisSize: MainAxisSize.min,
+              spacing: 3,
               children: [
-                _menuBar,
-                Expanded(child: _centerPanel),
-                _toolBar,
+                Text(
+                  "Add mods",
+                  style: TextStyle(fontSize: 24),
+                ),
+                Icon(
+                  Icons.download,
+                  size: 50,
+                ),
               ],
             ),
           ),
-        ],
-      );
+        );
+      } else {
+        final sideBar = SizedBox(
+          width: 200,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 3,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _add,
+                icon: const Icon(Icons.add),
+                label: Text("Add"),
+              ),
+              ElevatedButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.create),
+                label: Text("Create"),
+              ),
+              ElevatedButton(
+                onPressed: null,
+                child: Text("Import"),
+              ),
+              ElevatedButton(
+                onPressed: null,
+                child: Text("Export"),
+              ),
+              Row(
+                spacing: 3,
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => launchUrlString("https://discord.gg/helldiversmodding"),
+                      child: const Icon(
+                        Icons.discord,
+                        size: 30,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => launchUrlString("https://github.com/teutinsa/hd2mm"),
+                      child: ImageIcon(
+                        AssetImage("assets/images/github.png"),
+                        size: 25,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Spacer(),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pushNamed(context, "/help"),
+                icon: const Icon(Icons.help_outline),
+                label: Text("Help"),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => launchUrlString("https://github.com/teutinsa/hd2mm/issues/new"),
+                icon: const Icon(Icons.bug_report),
+                label: Text("Report Bug"),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pushNamed(context, "/about"),
+                icon: const Icon(Icons.info_outline),
+                label: Text("About"),
+              ),
+              ElevatedButton.icon(
+                onPressed: _navigateToSettings,
+                icon: const Icon(Icons.settings),
+                label: Text("Settings"),
+              ),
+            ],
+          ),
+        );
+
+        final menuBar = Row(
+          spacing: 3,
+          children: [
+            Expanded(
+              child: DropdownButton(
+                isExpanded: true,
+                items: _manager.profiles.map((profile) => DropdownMenuItem(
+                  value: profile,
+                  child: Text(profile.name),
+                ))
+                .toList(),
+                value: _manager.activeProfile,
+                onChanged: _changeProfile,
+              ),
+            ),
+            IconButton(
+              onPressed: _addProfile,
+              icon: const Icon(Icons.add),
+            ),
+            IconButton(
+              onPressed: _deleteProfile,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        );
+
+        final centerPanel = ModList(manager: _manager);
+
+        final toolBar = Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          spacing: 3,
+          children: [
+            ElevatedButton(
+              onPressed: _purge,
+              style: ButtonStyle(
+                foregroundColor: WidgetStateColor.resolveWith((states) {
+                  if (states.contains(WidgetState.disabled)) {
+                    return Colors.red[200]!;
+                  }
+                  if (states.contains(WidgetState.pressed)) {
+                    return Colors.redAccent;
+                  }
+                  if (states.contains(WidgetState.hovered)) {
+                    return Colors.red[400]!;
+                  }
+                  return Colors.red;
+                }),
+              ),
+              child: Text("Purge"),
+            ),
+            ElevatedButton(
+              onPressed: _deploy,
+              style: ButtonStyle(
+                foregroundColor: WidgetStateColor.resolveWith((states) {
+                  if (states.contains(WidgetState.disabled)) {
+                    return Colors.green[200]!;
+                  }
+                  if (states.contains(WidgetState.pressed)) {
+                    return Colors.greenAccent;
+                  }
+                  if (states.contains(WidgetState.hovered)) {
+                    return Colors.green[400]!;
+                  }
+                  return Colors.green;
+                }),
+              ),
+              child: Text("Deploy"),
+            ),
+            ElevatedButton(
+              onPressed: _launch,
+              style: ButtonStyle(
+                foregroundColor: WidgetStateColor.resolveWith((states) {
+                  if (states.contains(WidgetState.disabled)) {
+                    return Colors.yellow[200]!;
+                  }
+                  if (states.contains(WidgetState.pressed)) {
+                    return Colors.yellowAccent;
+                  }
+                  if (states.contains(WidgetState.hovered)) {
+                    return Colors.yellow[400]!;
+                  }
+                  return Colors.yellow;
+                }),
+              ),
+              child: Text("Launch HD2"),
+            ),
+          ],
+        );
+
+        final layout = Row(
+          spacing: 5,
+          children: [
+            sideBar,
+            Expanded(
+              child: Column(
+                spacing: 5,
+                children: [
+                  menuBar,
+                  Expanded(child: centerPanel),
+                  toolBar,
+                ],
+              ),
+            ),
+          ],
+        );
+
+        return DropTarget(
+          onDragEntered: (_) => setState(() => _dragging = true),
+          child: layout,
+        );
+      }
     }
   }
 
@@ -163,18 +287,15 @@ final class _ModsPageState extends State<ModsPage> {
 
     _manager = ModManagerService();
     await _manager.init(_settings);
-    
+
     _log.info("Loading complete");
     setState(() => _loading = false);
   }
 
   Future<void> _save() async {
-    showWaitDialog(
-      context,
-      title: "Saving",
-    );
+    showWaitDialog(context, title: "Saving");
 
-    //TODO: save
+    await _manager.save();
 
     closeDialog(context);
   }
@@ -182,5 +303,83 @@ final class _ModsPageState extends State<ModsPage> {
   Future<void> _navigateToSettings() async {
     await _save();
     Navigator.pushReplacementNamed(context, "/settings");
+  }
+
+  Future<void> _onDragDrop(DropDoneDetails details) async {
+    final files = <File>[];
+    for (final item in details.files) {
+      if (!await FileSystemEntity.isFile(item.path)) continue;
+      files.add(File(item.path));
+    }
+
+  }
+
+  void _changeProfile(Profile? profile) {
+    if (profile == null) return;
+    setState(() => _manager.activeProfile = profile);
+  }
+
+  Future<void> _addProfile() async {
+
+  }
+
+  Future<void> _deleteProfile() async {
+
+  }
+
+  Future<void> _purge() async {
+    showWaitDialog(context, title: "Purging");
+
+    await _manager.purge();
+
+    closeDialog(context);
+  }
+
+  Future<void> _deploy() async {
+    showWaitDialog(context, title: "Deploying");
+
+    await _manager.deploy();
+
+    closeDialog(context);
+  }
+
+  Future<void> _launch() async {
+    showWaitDialog(context, title: "Launching Helldivers 2");
+
+    await launchUrlString("steam://launch/553850");
+
+    closeDialog(context);
+  }
+
+  Future<void> _add() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      allowedExtensions: const [
+        "zip",
+        "tar",
+        "zlib",
+        "gzip",
+        "bzip2",
+        "xz",
+      ],
+      dialogTitle: "Please select mod archives to add.",
+      lockParentWindow: true,
+      type: FileType.custom,
+    );
+
+    if (result == null) return;
+
+    for (final file in result.files) {
+      if (file.path?.isEmpty ?? true) continue;
+
+      showWaitDialog(
+        context,
+        title: "Adding mod \"${file.name}\"",
+      );
+
+      await _manager.addMod(File(file.path!));
+
+      closeDialog(context);
+    }
   }
 }

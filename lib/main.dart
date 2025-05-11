@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:logging/logging.dart';
 import 'helpers/dialog.dart';
@@ -54,16 +53,20 @@ void main() {
     logWriter.writeln(line);
   });
 
-  // acquire log level from settings if they exist
-  final settingsFile = File("settings.json");
-  if (settingsFile.existsSync()) {
-    try {
-      final content = settingsFile.readAsStringSync();
-      final json = jsonDecode(content) as Map<String, dynamic>;
-      final settings = Settings.fromJson(json);
-      Logger.root.level = settings.logLevel;
-    } catch (e, s) {
-      Logger.root.severe("Failed to set log level!", e, s);
+  if (kDebugMode) {
+    Logger.root.level = Level.ALL;
+  } else {
+    // acquire log level from settings if they exist
+    final settingsFile = File("settings.json");
+    if (settingsFile.existsSync()) {
+      try {
+        final content = settingsFile.readAsStringSync();
+        final json = jsonDecode(content) as Map<String, dynamic>;
+        final settings = Settings.fromJson(json);
+        Logger.root.level = settings.logLevel;
+      } catch (e, s) {
+        Logger.root.severe("Failed to set log level!", e, s);
+      }
     }
   }
 
@@ -79,7 +82,7 @@ void main() {
   runApp(const Hd2mmApp());
 
   doWhenWindowReady(() {
-    const initialSize = Size(800, 600);
+    const initialSize = Size(900, 600);
     appWindow.minSize = initialSize;
     appWindow.size = initialSize;
     appWindow.alignment = Alignment.center;
@@ -242,10 +245,8 @@ final class _TitleBarState extends State<_TitleBar> {
   }
 
   Future<void> _checkForUpdate() async {
-    await dotenv.load();
-
-    final token = dotenv.maybeGet("GITHUB_TOKEN");
-    if (token == null) {
+    const token = String.fromEnvironment("GITHUB_TOKEN");
+    if (token.isEmpty) {
       _log.severe("Git token not found!");
       return;
     }

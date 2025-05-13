@@ -253,7 +253,6 @@ final class _ModsPageState extends State<ModsPage> {
 
         return DropTarget(
           onDragEntered: (_) => setState(() => _dragging = true),
-          onDragDone: _dropFiles,
           child: layout,
         );
       }
@@ -317,7 +316,7 @@ final class _ModsPageState extends State<ModsPage> {
       if (!await FileSystemEntity.isFile(item.path)) continue;
       files.add(File(item.path));
     }
-
+    await _addFiles(files);
   }
 
   void _changeProfile(Profile? profile) {
@@ -429,13 +428,6 @@ final class _ModsPageState extends State<ModsPage> {
       .map((file) => File(file.path!))
       .toList(growable: false);
 
-    await _addFiles(files);
-  }
-
-  Future<void> _dropFiles(DropDoneDetails details) async {
-    final files = details.files
-      .map((file) => File(file.path))
-      .toList(growable: false);
     await _addFiles(files);
   }
 

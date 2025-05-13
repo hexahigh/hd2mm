@@ -34,4 +34,14 @@ extension DirectoryExtensions on Directory {
     }
     return null;
   }
+
+  Future<void> copy(Directory newDir) async {
+    await for (final entry in list(recursive: true)) {
+      final relativePath = path.relative(entry.path, from: this.path);
+      final newPath = path.join(newDir.path, relativePath);
+      if (entry is! File) continue;
+      await File(newPath).parent.create(recursive: true);
+      await entry.copy(newPath);
+    }
+  }
 }

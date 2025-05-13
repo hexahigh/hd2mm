@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:path/path.dart' as path;
 import 'package:json_annotation/json_annotation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../helpers/directory_extensions.dart';
 import '../errors/serialization_exception.dart';
 import '../helpers/uuid_converter.dart';
 import 'mod_data.dart';
@@ -9,6 +14,51 @@ part 'mod_manifest.g.dart';
 
 sealed class ModManifest {
   bool get canUpgrade;
+
+  static Future<ModManifest> fromDirectory(Directory dir) async {
+    final file = await dir.tryGetFile("manifest.json");
+    if (file != null) return await fromFile(file);
+    return inferFromDirectory(dir);
+  }
+
+  static Future<ModManifest> inferFromDirectory(Directory dir) async {
+    const imageExtensions = { ".png", ".jpg", ".jpeg", ".bmp" };
+
+    String? iconPath;
+    List<String>? options;
+
+    if (await dir.list().any((entry) => entry is File && imageExtensions.contains(path.extension(entry.path)))) {
+      final entries = await dir.list()
+        .where((entry) => entry is File && imageExtensions.contains(path.extension(entry.path)))
+        .cast<File>()
+        .toList();
+      entries.sort((a, b) => path.basenameWithoutExtension(a.path) == "icon" ? -1 : 0);
+      if (entries.isNotEmpty) {
+        iconPath = path.relative(entries.first.path, from: dir.path);
+      }
+    }
+
+    final directories = await dir.list()
+      .where((entry) => entry is Directory)
+      .cast<Directory>()
+      .toList();
+    if (directories.isNotEmpty) options = directories.map((dir) => path.basename(dir.path)).toList();
+
+    return ModManifestLegacy(
+      guid: Uuid().v4obj(),
+      name: path.basename(dir.path),
+      description: "A locally imported mod.",
+      iconPath: iconPath,
+      options: options,
+      generated: true,
+    );
+  }
+
+  static Future<ModManifest> fromFile(File file) async {
+    final content = await file.readAsString();
+    final json = jsonDecode(content);
+    return fromJson(json);
+  }
 
   static ModManifest fromJson(Map<String, dynamic> json) {
     final version = json["Version"];
@@ -47,17 +97,29 @@ sealed class ModManifest {
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
+  disallowUnrecognizedKeys: true,
 )
 final class ModManifestLegacy extends ModManifest {
   @override
   bool get canUpgrade => true;
 
   @UuidValueConverter()
+  @JsonKey(required: true)
   final UuidValue guid;
+  @JsonKey(required: true)
   final String name;
+  @JsonKey(required: true)
   final String description;
+  @JsonKey(required: false)
   final String? iconPath;
+  @JsonKey(required: false)
   final List<String>? options;
+  @JsonKey(
+    name: "_generated",
+    required: false,
+    defaultValue: false,
+  )
+  final bool generated;
 
   ModManifestLegacy({
     required this.guid,
@@ -65,6 +127,7 @@ final class ModManifestLegacy extends ModManifest {
     required this.description,
     this.iconPath,
     this.options,
+    this.generated = false,
   });
 
   factory ModManifestLegacy.fromJson(Map<String, dynamic> json) => _$ModManifestLegacyFromJson(json);
@@ -106,11 +169,16 @@ final class ModManifestLegacy extends ModManifest {
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
+  disallowUnrecognizedKeys: true,
 )
 final class ModSubOption {
+  @JsonKey(required: true)
   final String name;
+  @JsonKey(required: true)
   final String description;
+  @JsonKey(required: false)
   final String? image;
+  @JsonKey(required: true)
   final List<String> include;
 
   ModSubOption({
@@ -131,10 +199,15 @@ final class ModSubOption {
   disallowUnrecognizedKeys: true,
 )
 final class ModOption {
+  @JsonKey(required: true)
   final String name;
+  @JsonKey(required: true)
   final String description;
+  @JsonKey(required: false)
   final String? image;
+  @JsonKey(required: false)
   final List<String>? include;
+  @JsonKey(required: false)
   final List<ModSubOption>? subOptions;
 
   ModOption({
@@ -153,32 +226,34 @@ final class ModOption {
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
+  disallowUnrecognizedKeys: true,
 )
 final class ModManifestV1 extends ModManifest {
   @override
   bool get canUpgrade => false;
 
-  @JsonKey(
-    name: "Version",
-    includeToJson: true,
-    includeFromJson: false, 
-  )
-  // ignore: unused_field
-  final int _version;
+  @JsonKey(required: true)
+  final int version;
   @UuidValueConverter()
+  @JsonKey(required: true)
   final UuidValue guid;
+  @JsonKey(required: true)
   final String name;
+  @JsonKey(required: true)
   final String description;
+  @JsonKey(required: false)
   final String? iconPath;
+  @JsonKey(required: false)
   final List<ModOption>? options;
 
   ModManifestV1({
+    this.version = 1,
     required this.guid,
     required this.name,
     required this.description,
     this.iconPath,
     this.options,
-  }) : _version = 1;
+  }) : assert(version == 1);
 
   factory ModManifestV1.fromJson(Map<String, dynamic> json) => _$ModManifestV1FromJson(json);
 

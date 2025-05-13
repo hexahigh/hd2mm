@@ -2,16 +2,19 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:hd2mm/helpers/directory_extensions.dart';
+import 'package:archive/archive_io.dart' show extractFileToDisk;
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
+import 'package:unrar_file/unrar_file.dart';
 import 'package:uuid/uuid.dart';
 
+import '../helpers/directory_extensions.dart';
 import '../errors/not_initialized_error.dart';
 import '../models/mod.dart';
 import '../models/mod_manifest.dart';
 import '../models/profile.dart';
 import '../models/settings.dart';
+import '../models/mod_data.dart';
 
 enum ManagerInitProgress {
   loadingMods,
@@ -19,6 +22,8 @@ enum ManagerInitProgress {
   checkingProfiles,
   complete,
 }
+
+typedef _PatchFileTriplet = ({File? patch, File? gpuResources, File? stream});
 
 final class ModManagerService {
   Profile get activeProfile => _profiles.profiles[_profiles.active];
@@ -33,6 +38,9 @@ final class ModManagerService {
 
   UnmodifiableListView<Profile> get profiles => UnmodifiableListView(_profiles.profiles);
 
+  static final _patchFileRegex = RegExp(r"^[a-z0-9]{16}\.patch_[0-9]+(\.(stream|gpu_resources))?$");
+  static final _patchRegex = RegExp(r"\.patch_[0-9]+");
+  static final _patchIndexRegex = RegExp(r"^(?:[a-z0-9]{16}\.patch_)([0-9]+)(?:(?:\.(?:stream|gpu_resources))?)$");
   final _log = Logger("ModManagerService");
   bool _initialized = false;
   late Settings _settings;
@@ -83,6 +91,9 @@ final class ModManagerService {
       final source = await _profilesFile.readAsString();
       final json = jsonDecode(source);
       _profiles = ProfileData.fromJson(json);
+      if (_profiles.profiles.isEmpty) _profiles.profiles.add(Profile("Default"));
+      if (_profiles.active < 0) _profiles.active = 0;
+      if (_profiles.active >= _profiles.profiles.length) _profiles.active = _profiles.profiles.length - 1;
     } else {
       _profiles = ProfileData(0, [ Profile("Default") ]);
     }
@@ -129,9 +140,54 @@ final class ModManagerService {
     return true;
   }
 
-  Future<void> addMod(File archiveFile) async {
-    //TODO: Implement mod adding
-    throw UnimplementedError();
+  Future<bool> addMod(File archiveFile) async {
+    _log.info("Attempting to add mod from \"${path.basename(archiveFile.path)}\".");
+
+    final tmpDir = Directory(path.join(_settings.tempPath.path, path.basenameWithoutExtension(archiveFile.path)));
+    _log.fine("Creating clean directory \"${tmpDir.path}\"");
+    if (await tmpDir.exists()) await tmpDir.delete(recursive: true);
+    await tmpDir.create(recursive: true);
+
+    _log.fine("Extracting archive");
+    if (path.extension(archiveFile.path) == ".rar") {
+      await UnrarFile.extract_rar(archiveFile.path, tmpDir.path);
+    } else {
+      await extractFileToDisk(archiveFile.path, tmpDir.path);
+    }
+
+    _log.fine("Reading manifest");
+    final manifest = await ModManifest.fromDirectory(tmpDir);
+
+    if (_mods.any((mod) => mod.manifest.getIdentifier() == manifest.getIdentifier())) {
+      _log.severe("Mod with guid already exists!");
+      await tmpDir.delete(recursive: true);
+      return false;
+    }
+
+    if (!await tmpDir.containsFile("manifest.json")) {
+      final json = manifest.toJson();
+      final content = jsonEncode(json);
+      final file = File(path.join(tmpDir.path, "manifest.json"));
+      await file.writeAsString(content);
+    }
+
+    final modDir = Directory(path.join(_modsDir.path, manifest.getName()));
+    if (await modDir.exists()) {
+      _log.severe("Mod directory already exists in storage!");
+      await tmpDir.delete(recursive: true);
+      return false;
+    }
+
+    _log.fine("Moving mod to storage");
+    await tmpDir.copy(modDir);
+
+    _log.fine("Adding mod");
+    final mod = Mod(modDir, manifest);
+    _mods.add(mod);
+
+    await tmpDir.delete(recursive: true);
+    _log.info("Mod added successfully.");
+    return true;
   }
 
   Future<void> removeMod(Mod mod) async {
@@ -140,10 +196,203 @@ final class ModManagerService {
   }
 
   Future<void> purge() async {
+    _log.info("Purging...");
 
+    _log.fine("Checking game directory.");
+    if (_settings.gamePath == null) throw Exception("Game path is null!");
+    final dataDir = await _settings.gamePath!.tryGetDirectory("data");
+    if (dataDir == null) throw Exception("Data directory not found!");
+
+    final list = <Future<FileSystemEntity>>[];
+    await for (final entry in dataDir.list()) {
+      if (entry is! File) continue;
+      if (!path.basename(entry.path).contains("patch_")) continue;
+      list.add(entry.delete());
+    }
+
+    await Future.wait(list);
+
+    _log.info("Purge complete.");
   }
 
   Future<void> deploy() async {
+    _log.info("Deploying profile \"${activeProfile.name}\"...");
+
+    _log.fine("Checking game directory");
+    if (_settings.gamePath == null) throw Exception("Game path is null!");
+    final dataDir = await _settings.gamePath!.tryGetDirectory("data");
+    if (dataDir == null) throw Exception("Data directory not found!");
+
+    await save();
+    await purge();
+
+    _log.fine("Collecting mods");
+    final mods = activeProfile.mods
+      .map((data) => (getModByGuid(data.guid), data))
+      .where((tuple) => tuple.$1 != null && tuple.$2.enabled)
+      .cast<(Mod, ModData)>()
+      .toList(growable: false);
+
+    final groups = HashMap<String, List<_PatchFileTriplet>>();
     
+    Future<void> addFilesFromDir(Directory dir) async {
+      final files = <File>[];
+      await for (final entry in dir.list()) {
+        if (entry is! File) continue;
+        final name = path.basename(entry.path);
+        if (!_patchFileRegex.hasMatch(name)) continue;
+        _log.fine("Adding file \"${entry.path}\"");
+        files.add(entry);
+      }
+
+      final names = <String>{};
+      for (final file in files) {
+        final name = path.basename(file.path);
+        names.add(name.substring(0, 16));
+      }
+
+      for (final name in names) {
+        final indexes = <int>{};
+        for (final file in files) {
+          var match = _patchIndexRegex.firstMatch(path.basename(file.path));
+          if (match == null) continue;
+          indexes.add(int.parse(match[1]!));
+        }
+
+        for (final index in indexes) {
+          final patchFile = await dir.tryGetFile("$name.patch_$index");
+          final gpuFile = await dir.tryGetFile("$name.patch_$index.gpu_resources");
+          final streamFile = await dir.tryGetFile("$name.patch_$index.stream");
+          
+          if (!groups.containsKey(name)) groups[name] = [];
+          groups[name]!.add((
+            patch: patchFile,
+            gpuResources: gpuFile,
+            stream: streamFile,
+          ));
+        }
+      }
+    }
+    
+    _log.fine("Grouping files");
+    for (final (mod, data) in mods) {
+      _log.fine("Working on \"${mod.manifest.getName()}\"");
+
+      switch (mod.manifest) {
+        case ModManifestLegacy manifest:
+          {
+            _log.fine("Legacy manifest found");
+            
+            if (manifest.options != null) {
+              if (data.selected.length != 1) {
+                _log.severe("Options have the wrong count!");
+                continue;
+              }
+
+              final dir = Directory(path.join(mod.directory.path, manifest.options![data.selected[0]]));
+              await addFilesFromDir(dir);
+            } else {
+              await addFilesFromDir(mod.directory);
+            }
+          }
+          break;
+
+        case ModManifestV1 manifest:
+          {
+            _log.fine("V1 manifest found");
+            
+            if (manifest.options != null) {
+              if (data.toggled.length != manifest.options!.length) {
+                _log.severe("Toggled option counts are not equal!");
+                continue;
+              }
+
+              if (data.selected.length != manifest.options!.length) {
+                _log.severe("Selected option counts are not equal!");
+                continue;
+              }
+
+              _log.fine("Making include list");
+              for (int i = 0; i < data.toggled.length; i++) {
+                if (!data.toggled[i]) continue;
+
+                final opt = manifest.options![i];
+
+                if (opt.include case List<String> incs) {
+                  for (final inc in incs) {
+                    final dir = Directory(path.join(mod.directory.path, inc));
+                    _log.fine("Adding \"${dir.path}\"");
+                    await addFilesFromDir(dir);
+                  }
+                }
+
+                if (opt.subOptions case List<ModSubOption> subs) {
+                  final sub = subs[data.selected[i]];
+                  for (final inc in sub.include) {
+                    final dir = Directory(path.join(mod.directory.path, inc));
+                    _log.fine("Adding \"${dir.path}\"");
+                    await addFilesFromDir(dir);
+                  }
+                }
+              }
+            } else {
+              await addFilesFromDir(mod.directory);
+            }
+          }
+          break;
+      }
+    }
+
+    _log.fine("Copying files");
+    for (final MapEntry(key: name, value: list) in groups.entries) {
+      int offset = 0;
+      if (_settings.skipList.contains(name)) offset = 1;
+
+      for (int i = 0; i < list.length; i++) {
+        final triplet = list[i];
+        final index = i + offset;
+
+        final newPatchPath = path.join(dataDir.path, "$name.patch_$index");
+        if (triplet.patch != null) {
+          await triplet.patch!.copy(newPatchPath);
+        } else {
+          await File(newPatchPath).create();
+        }
+
+        final newGpuResourcesPath = path.join(dataDir.path, "$name.patch_$index.gpu_resources");
+        if (triplet.gpuResources != null) {
+          await triplet.gpuResources!.copy(newGpuResourcesPath);
+        } else {
+          await File(newGpuResourcesPath).create();
+        }
+
+        final newStreamPath = path.join(dataDir.path, "$name.patch_$index.stream");
+        if (triplet.stream != null) {
+          await triplet.stream!.copy(newStreamPath);
+        } else {
+          await File(newStreamPath).create();
+        }
+      }
+    }
+
+    _log.info("Deployment successful.");
+  }
+
+  Profile? addProfile(String name) {
+    if (_profiles.profiles.any((p) => p.name == name)) return null;
+    final profile = Profile(name);
+    _profiles.profiles.add(profile);
+    return profile;
+  }
+
+  void removeProfile(Profile profile) {
+    if (!_profiles.profiles.remove(profile)) return;
+    if (_profiles.profiles.isEmpty) {
+      _profiles.profiles.add(Profile("Default"));
+      return;
+    }
+    _profiles.active--;
+    if (_profiles.active < 0) _profiles.active = 0;
+    if (_profiles.active >= _profiles.profiles.length) _profiles.active = _profiles.profiles.length - 1;
   }
 }

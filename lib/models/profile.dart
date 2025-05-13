@@ -12,7 +12,7 @@ final class Profile {
   final String name;
   final List<ModData> mods;
 
-  Profile(this.name) : mods = [];
+  Profile(this.name, [List<ModData>? mods]) : mods = mods ?? [];
 
   factory Profile.fromJson(Map<String, dynamic> json) => _$ProfileFromJson(json);
 

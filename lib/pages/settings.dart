@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 import 'package:async/async.dart';
 import 'package:file_picker/file_picker.dart';
@@ -168,7 +167,7 @@ final class _SettingsPageState extends State<SettingsPage> {
                       spacing: 5,
                       children: [
                         ElevatedButton(
-                          onPressed: _importV1Stuff,
+                          onPressed: null,//_importV1Stuff,
                           child: Text("Import V1 Manager content"),
                         ),
                         Expanded(
@@ -200,6 +199,7 @@ final class _SettingsPageState extends State<SettingsPage> {
                           child: Text(lvl.name),
                         );
                       }).toList(growable: false),
+                      isExpanded: true,
                       value: _logLevel,
                       onChanged: (value) => setState(() => _logLevel = value ?? Level.ALL),
                     ),
@@ -391,7 +391,10 @@ final class _SettingsPageState extends State<SettingsPage> {
         type: NotificationType.error,
       );
     } else {
-      setState(() => _gamePathController = TextEditingController(text: gamePath));
+      setState(() {
+        _gamePathController = TextEditingController(text: gamePath);
+        _gamePathError = null;
+      });
     }
   }
 

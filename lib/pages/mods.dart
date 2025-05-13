@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
@@ -106,7 +105,7 @@ final class _ModsPageState extends State<ModsPage> {
                   ),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => launchUrlString("https://github.com/teutinsa/hd2mm"),
+                      onPressed: null,//() => launchUrlString("https://github.com/teutinsa/hd2mm"),
                       child: ImageIcon(
                         AssetImage("assets/images/github.png"),
                         size: 25,
@@ -117,7 +116,7 @@ final class _ModsPageState extends State<ModsPage> {
               ),
               Spacer(),
               ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, "/help"),
+                onPressed: null,//() => Navigator.pushNamed(context, "/help"),
                 icon: const Icon(Icons.help_outline),
                 label: Text("Help"),
               ),
@@ -127,7 +126,7 @@ final class _ModsPageState extends State<ModsPage> {
                 label: Text("Report Bug"),
               ),
               ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, "/about"),
+                onPressed: null,//() => Navigator.pushNamed(context, "/about"),
                 icon: const Icon(Icons.info_outline),
                 label: Text("About"),
               ),
@@ -166,7 +165,10 @@ final class _ModsPageState extends State<ModsPage> {
           ],
         );
 
-        final centerPanel = ModList(manager: _manager);
+        final centerPanel = ModList(
+          manager: _manager,
+          key: ObjectKey(_manager.activeProfile),
+        );
 
         final toolBar = Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -320,17 +322,50 @@ final class _ModsPageState extends State<ModsPage> {
   }
 
   Future<void> _addProfile() async {
+    final result = await showPromptDialog(
+      context,
+      title: "New Profile",
+      hint: "Profile Name",
+    );
+    if (result == null) return;
 
+    final profile = _manager.addProfile(result);
+    if (profile == null) {
+      showNotificationDialog(
+        context,
+        text: "Profile with that name already exists.",
+        type: NotificationType.error
+      );
+      return;
+    }
+
+    setState(() => _manager.activeProfile = profile);
   }
 
   Future<void> _deleteProfile() async {
-
+    final result = await showConfirmDialog(
+      context,
+      title: "Delete",
+      question: "Do you really want to delete the profile \"${_manager.activeProfile.name}\"?",
+    );
+    if (!result) return;
+    setState(() => _manager.removeProfile(_manager.activeProfile));
   }
 
   Future<void> _purge() async {
     showWaitDialog(context, title: "Purging");
 
-    await _manager.purge();
+    try {
+      await _manager.purge();
+    } on Exception catch (ex) {
+      closeDialog(context);
+      showNotificationDialog(
+        context,
+        text: "Purging failed!\n$ex",
+        type: NotificationType.error
+      );
+      return;
+    }
 
     closeDialog(context);
   }
@@ -338,7 +373,17 @@ final class _ModsPageState extends State<ModsPage> {
   Future<void> _deploy() async {
     showWaitDialog(context, title: "Deploying");
 
-    await _manager.deploy();
+    try {
+      await _manager.deploy();
+    } on Exception catch (ex) {
+      closeDialog(context);
+      showNotificationDialog(
+        context,
+        text: "Deployment failed!\n$ex",
+        type: NotificationType.error,
+      );
+      return;
+    }
 
     closeDialog(context);
   }
@@ -355,12 +400,14 @@ final class _ModsPageState extends State<ModsPage> {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
       allowedExtensions: const [
-        "zip",
+        "tar.gz",
+        "tgz",
+        "tar.bz2",
+        "tbz",
+        "tar.xz",
+        "txz",
         "tar",
-        "zlib",
-        "gzip",
-        "bzip2",
-        "xz",
+        "zip",
       ],
       dialogTitle: "Please select mod archives to add.",
       lockParentWindow: true,
@@ -369,6 +416,7 @@ final class _ModsPageState extends State<ModsPage> {
 
     if (result == null) return;
 
+    final errors = <Exception>[];
     for (final file in result.files) {
       if (file.path?.isEmpty ?? true) continue;
 
@@ -377,9 +425,29 @@ final class _ModsPageState extends State<ModsPage> {
         title: "Adding mod \"${file.name}\"",
       );
 
-      await _manager.addMod(File(file.path!));
+      try {
+        await _manager.addMod(File(file.path!));
+      } on Exception catch (ex) {
+        errors.add(ex);
+      }
 
       closeDialog(context);
+    }
+
+    setState(() {});
+    if (errors.isNotEmpty) {
+      final buffer = StringBuffer();
+      buffer.writeln("Adding failed!");
+
+      for (final ex in errors) {
+        buffer.writeln(ex);
+      }
+
+      showNotificationDialog(
+        context,
+        text: buffer.toString(),
+        type: NotificationType.error,
+      );
     }
   }
 }

@@ -69,7 +69,7 @@ Future<bool> showConfirmDialog(BuildContext context, {
         Text(question),
         Row(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.end,
           spacing: 3,
           children: [
             ElevatedButton(
@@ -85,6 +85,46 @@ Future<bool> showConfirmDialog(BuildContext context, {
       ],
     ),
   ) ?? false;
+}
+
+Future<String?> showPromptDialog(BuildContext context, {
+  required String title,
+  String? hint,
+}) {
+  final controller = TextEditingController();
+  return _showBaseDialog(
+    context: context,
+    title: title,
+    widget: Column(
+      spacing: 5,
+      children: [
+        SizedBox(
+          width: 300,
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: hint,
+            ),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.end,
+          spacing: 3,
+          children: [
+            ElevatedButton(
+              onPressed: () => closeDialog(context, controller.text),
+              child: Text("OK"),
+            ),
+            ElevatedButton(
+              onPressed: () => closeDialog(context, null),
+              child: Text("Cancel"),
+            ),
+          ],
+        )
+      ],
+    ),
+  );
 }
 
 Future<T?> _showBaseDialog<T>({

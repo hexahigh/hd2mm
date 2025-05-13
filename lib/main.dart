@@ -196,8 +196,10 @@ final class _TitleBarState extends State<_TitleBar> {
                     ),
                   ),
                   Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Text("v2.0.0"),
+                      Text("(Preview 1)"),
                       if (kDebugMode)
                         Text(
                           "(Debug)",

@@ -11,6 +11,18 @@ ModManifestLegacy _$ModManifestLegacyFromJson(Map<String, dynamic> json) =>
       'ModManifestLegacy',
       json,
       ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'Guid',
+            'Name',
+            'Description',
+            'IconPath',
+            'Options',
+            '_generated',
+          ],
+          requiredKeys: const ['Guid', 'Name', 'Description'],
+        );
         final val = ModManifestLegacy(
           guid: $checkedConvert(
             'Guid',
@@ -23,6 +35,7 @@ ModManifestLegacy _$ModManifestLegacyFromJson(Map<String, dynamic> json) =>
             'Options',
             (v) => (v as List<dynamic>?)?.map((e) => e as String).toList(),
           ),
+          generated: $checkedConvert('_generated', (v) => v as bool? ?? false),
         );
         return val;
       },
@@ -32,6 +45,7 @@ ModManifestLegacy _$ModManifestLegacyFromJson(Map<String, dynamic> json) =>
         'description': 'Description',
         'iconPath': 'IconPath',
         'options': 'Options',
+        'generated': '_generated',
       },
     );
 
@@ -42,6 +56,7 @@ Map<String, dynamic> _$ModManifestLegacyToJson(ModManifestLegacy instance) =>
       'Description': instance.description,
       'IconPath': instance.iconPath,
       'Options': instance.options,
+      '_generated': instance.generated,
     };
 
 ModSubOption _$ModSubOptionFromJson(Map<String, dynamic> json) =>
@@ -49,6 +64,11 @@ ModSubOption _$ModSubOptionFromJson(Map<String, dynamic> json) =>
       'ModSubOption',
       json,
       ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const ['Name', 'Description', 'Image', 'Include'],
+          requiredKeys: const ['Name', 'Description', 'Include'],
+        );
         final val = ModSubOption(
           name: $checkedConvert('Name', (v) => v as String),
           description: $checkedConvert('Description', (v) => v as String),
@@ -89,6 +109,7 @@ ModOption _$ModOptionFromJson(Map<String, dynamic> json) => $checkedCreate(
         'Include',
         'SubOptions',
       ],
+      requiredKeys: const ['Name', 'Description'],
     );
     final val = ModOption(
       name: $checkedConvert('Name', (v) => v as String),
@@ -130,7 +151,20 @@ ModManifestV1 _$ModManifestV1FromJson(Map<String, dynamic> json) =>
       'ModManifestV1',
       json,
       ($checkedConvert) {
+        $checkKeys(
+          json,
+          allowedKeys: const [
+            'Version',
+            'Guid',
+            'Name',
+            'Description',
+            'IconPath',
+            'Options',
+          ],
+          requiredKeys: const ['Version', 'Guid', 'Name', 'Description'],
+        );
         final val = ModManifestV1(
+          version: $checkedConvert('Version', (v) => (v as num?)?.toInt() ?? 1),
           guid: $checkedConvert(
             'Guid',
             (v) => const UuidValueConverter().fromJson(v as String),
@@ -149,6 +183,7 @@ ModManifestV1 _$ModManifestV1FromJson(Map<String, dynamic> json) =>
         return val;
       },
       fieldKeyMap: const {
+        'version': 'Version',
         'guid': 'Guid',
         'name': 'Name',
         'description': 'Description',
@@ -159,7 +194,7 @@ ModManifestV1 _$ModManifestV1FromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ModManifestV1ToJson(ModManifestV1 instance) =>
     <String, dynamic>{
-      'Version': instance._version,
+      'Version': instance.version,
       'Guid': const UuidValueConverter().toJson(instance.guid),
       'Name': instance.name,
       'Description': instance.description,

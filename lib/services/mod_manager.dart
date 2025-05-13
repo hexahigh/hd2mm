@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:archive/archive_io.dart' show extractFileToDisk;
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
-import 'package:unrar_file/unrar_file.dart';
 import 'package:uuid/uuid.dart';
 
 import '../helpers/directory_extensions.dart';
@@ -149,11 +148,7 @@ final class ModManagerService {
     await tmpDir.create(recursive: true);
 
     _log.fine("Extracting archive");
-    if (path.extension(archiveFile.path) == ".rar") {
-      await UnrarFile.extract_rar(archiveFile.path, tmpDir.path);
-    } else {
-      await extractFileToDisk(archiveFile.path, tmpDir.path);
-    }
+    await extractFileToDisk(archiveFile.path, tmpDir.path);
 
     _log.fine("Reading manifest");
     final manifest = await ModManifest.fromDirectory(tmpDir);
@@ -173,9 +168,8 @@ final class ModManagerService {
 
     final modDir = Directory(path.join(_modsDir.path, manifest.getName()));
     if (await modDir.exists()) {
-      _log.severe("Mod directory already exists in storage!");
-      await tmpDir.delete(recursive: true);
-      return false;
+      _log.warning("Mod directory already exists in storage. Deleting...");
+      await modDir.delete(recursive: true);
     }
 
     _log.fine("Moving mod to storage");

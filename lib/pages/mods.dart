@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:path/path.dart' as path;
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:hd2mm/models/settings.dart';
 import 'package:logging/logging.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+
+import '../models/settings.dart';
 import '../components/mod_list.dart';
 import '../models/profile.dart';
 import '../services/mod_manager.dart';
@@ -121,12 +124,12 @@ final class _ModsPageState extends State<ModsPage> {
                 label: Text("Help"),
               ),
               ElevatedButton.icon(
-                onPressed: () => launchUrlString("https://github.com/teutinsa/hd2mm/issues/new"),
+                onPressed: null,//() => launchUrlString("https://github.com/teutinsa/hd2mm/issues/new"),
                 icon: const Icon(Icons.bug_report),
                 label: Text("Report Bug"),
               ),
               ElevatedButton.icon(
-                onPressed: null,//() => Navigator.pushNamed(context, "/about"),
+                onPressed: () => Navigator.pushNamed(context, "/about"),
                 icon: const Icon(Icons.info_outline),
                 label: Text("About"),
               ),
@@ -250,6 +253,7 @@ final class _ModsPageState extends State<ModsPage> {
 
         return DropTarget(
           onDragEntered: (_) => setState(() => _dragging = true),
+          onDragDone: _dropFiles,
           child: layout,
         );
       }
@@ -386,6 +390,10 @@ final class _ModsPageState extends State<ModsPage> {
     }
 
     closeDialog(context);
+    showNotificationDialog(
+      context,
+      text: "Deployment successful.",
+    );
   }
 
   Future<void> _launch() async {
@@ -416,17 +424,35 @@ final class _ModsPageState extends State<ModsPage> {
 
     if (result == null) return;
 
-    final errors = <Exception>[];
-    for (final file in result.files) {
-      if (file.path?.isEmpty ?? true) continue;
+    final files = result.files
+      .where((file) => file.path != null)
+      .map((file) => File(file.path!))
+      .toList(growable: false);
+
+    await _addFiles(files);
+  }
+
+  Future<void> _dropFiles(DropDoneDetails details) async {
+    final files = details.files
+      .map((file) => File(file.path))
+      .toList(growable: false);
+    await _addFiles(files);
+  }
+
+  Future<void> _addFiles(List<File> files) async {
+    final errors = <Object>[];
+    for (final file in files) {
+      if (file.path.isEmpty) continue;
 
       showWaitDialog(
         context,
-        title: "Adding mod \"${file.name}\"",
+        title: "Adding mod \"${path.basename(file.path)}\"",
       );
 
       try {
-        await _manager.addMod(File(file.path!));
+        if (!await _manager.addMod(File(file.path))) {
+          errors.add("Mod already exists!");
+        }
       } on Exception catch (ex) {
         errors.add(ex);
       }
@@ -434,13 +460,16 @@ final class _ModsPageState extends State<ModsPage> {
       closeDialog(context);
     }
 
-    setState(() {});
+    setState(() { /* Invalidate for redraw since _manager changed */ });
+
     if (errors.isNotEmpty) {
       final buffer = StringBuffer();
       buffer.writeln("Adding failed!");
 
-      for (final ex in errors) {
-        buffer.writeln(ex);
+      for (final MapEntry(key: i, value: e) in errors.asMap().entries) {
+        buffer.write(i);
+        buffer.write(": ");
+        buffer.writeln(e);
       }
 
       showNotificationDialog(

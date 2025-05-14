@@ -72,11 +72,11 @@ sealed class ModManifest {
   ModData createModData() {
     return switch (this) {
       ModManifestLegacy _ => ModData.legacy(
-        guid: getIdentifier() as UuidValue,
+        guid: getIdentifier(),
         index: 0,
       ),
       ModManifestV1 _ => ModData.v1(
-        guid: getIdentifier() as UuidValue,
+        guid: getIdentifier(),
         toggled: List.filled((this as ModManifestV1).options?.length ?? 0, true),
         selected: List.filled((this as ModManifestV1).options?.length ?? 0, 0),
       ),
@@ -85,7 +85,7 @@ sealed class ModManifest {
 
   Map<String, dynamic> toJson();
 
-  Object getIdentifier();
+  UuidValue getIdentifier();
   
   String getName();
 
@@ -128,7 +128,12 @@ final class ModManifestLegacy extends ModManifest {
     this.iconPath,
     this.options,
     this.generated = false,
-  });
+  }) {
+    if (guid.isNil) throw FormatException("`Guid` can not be Nil!");
+    if (name.isEmpty) throw FormatException("`Name` can not be empty!");
+    if (iconPath?.isEmpty ?? false) throw FormatException("If set `IconPath` can not be empty!");
+    if (options?.isEmpty ?? false) throw FormatException("If set `Options` can not be empty!");
+  }
 
   factory ModManifestLegacy.fromJson(Map<String, dynamic> json) => _$ModManifestLegacyFromJson(json);
 
@@ -136,7 +141,7 @@ final class ModManifestLegacy extends ModManifest {
   Map<String, dynamic> toJson() => _$ModManifestLegacyToJson(this);
 
   @override
-  Object getIdentifier() => guid;
+  UuidValue getIdentifier() => guid;
 
   @override
   String getName() => name;
@@ -186,7 +191,11 @@ final class ModSubOption {
     required this.description,
     this.image,
     required this.include,
-  });
+  }) {
+    if (name.isEmpty) throw FormatException("`Name` can not be empty!");
+    if (image?.isEmpty ?? false) throw FormatException("`Image` can not be empty!");
+    if (include.isEmpty) throw FormatException("`Include` can not be empty!");
+  }
 
   factory ModSubOption.fromJson(Map<String, dynamic> json) => _$ModSubOptionFromJson(json);
 
@@ -216,7 +225,12 @@ final class ModOption {
     this.image,
     this.include,
     this.subOptions,
-  });
+  }) {
+    if (name.isEmpty) throw FormatException("`Name` can not be empty!");
+    if (image?.isEmpty ?? false) throw FormatException("If set`Image` can not be empty!");
+    if (include?.isEmpty ?? false) throw FormatException("If set `Include` can not be empty!");
+    if (subOptions?.isEmpty ?? false) throw FormatException("If set `SubOptions` can not be empty!");
+  }
 
   factory ModOption.fromJson(Map<String, dynamic> json) => _$ModOptionFromJson(json);
 
@@ -253,7 +267,12 @@ final class ModManifestV1 extends ModManifest {
     required this.description,
     this.iconPath,
     this.options,
-  }) : assert(version == 1);
+  }) : assert(version == 1) {
+    if (guid.isNil) throw FormatException("`Guid` can not be Nil!");
+    if (name.isEmpty) throw FormatException("`Name` can not be empty!");
+    if (iconPath?.isEmpty ?? false) throw FormatException("If set `IconPath` can not be empty!");
+    if (options?.isEmpty ?? false) throw FormatException("If set `Options` can not be empty!");
+  }
 
   factory ModManifestV1.fromJson(Map<String, dynamic> json) => _$ModManifestV1FromJson(json);
 
@@ -261,7 +280,7 @@ final class ModManifestV1 extends ModManifest {
   Map<String, dynamic> toJson() => _$ModManifestV1ToJson(this);
 
   @override
-  Object getIdentifier() => guid;
+  UuidValue getIdentifier() => guid;
 
   @override
   String getName() => name;

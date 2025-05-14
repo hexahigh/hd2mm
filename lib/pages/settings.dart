@@ -387,7 +387,7 @@ final class _SettingsPageState extends State<SettingsPage> {
     if (gamePath == null) {
       showNotificationDialog(
         context,
-        text: "Game not found!\nPlease select your install location manually.",
+        text: "Could not automatically detect game!\nPlease select your install location manually.",
         type: NotificationType.error,
       );
     } else {
@@ -496,9 +496,8 @@ final class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    final binFileName = Platform.isWindows ? "helldivers2.exe" : "helldivers2";
-    if (!await binDir.containsFile(binFileName)) {
-      setState(() => _gamePathError = "Directory \"bin\" in game path does not contain a file called \"$binFileName\"!");
+    if (!await binDir.containsFile("helldivers2.exe")) {
+      setState(() => _gamePathError = "Directory \"bin\" in game path does not contain a file called \"helldivers2.exe\"!");
       return;
     }
 

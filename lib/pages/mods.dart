@@ -282,7 +282,7 @@ final class _ModsPageState extends State<ModsPage> {
       Navigator.pushReplacementNamed(context, "/settings");
       showNotificationDialog(
         context,
-        type: NotificationType.warning,
+        type: NotificationType.error,
         text: "Some settings are invalid.",
       );
       return;

@@ -10,6 +10,18 @@ Settings _$SettingsFromJson(Map<String, dynamic> json) => $checkedCreate(
   'Settings',
   json,
   ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'TempPath',
+        'GamePath',
+        'StoragePath',
+        'CaseSensitiveSearch',
+        'DeveloperMode',
+        'LogLevel',
+        'SkipList',
+      ],
+    );
     final val = Settings(
       tempPath: $checkedConvert(
         'TempPath',

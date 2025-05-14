@@ -185,6 +185,7 @@ final class ModManagerService {
   }
 
   Future<void> removeMod(Mod mod) async {
+    //TODO: Remove mod from profiles that inculde it
     await mod.directory.delete(recursive: true);
     _mods.remove(mod);
   }

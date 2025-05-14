@@ -249,7 +249,7 @@ final class _TitleBarState extends State<_TitleBar> {
   Future<void> _checkForUpdate() async {
     const token = String.fromEnvironment("GITHUB_TOKEN");
     if (token.isEmpty) {
-      _log.severe("Git token not found!");
+      _log.severe("GitHub token not found!");
       return;
     }
     

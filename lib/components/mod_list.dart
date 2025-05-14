@@ -23,7 +23,7 @@ class _ModListState extends State<ModList> {
   bool _searching = false;
   CancelableOperation<void>? _searchOperation;
   String _lastQuery = "";
-  bool _expanded = false;
+  bool _expanded = true;
   List<Mod> _mods = const [];
 
   @override
@@ -67,32 +67,40 @@ class _ModListState extends State<ModList> {
           },
           builder: (context, _, _) => Padding(
             padding: EdgeInsets.only(right: _expanded ? 300 : 20),
-            child: ReorderableListView.builder(
-              itemBuilder: (context, index) {
-                final mod = _mods[index];
-                final data = widget.manager.activeProfile.mods[index];
-                return DragTarget<Mod>(
-                  onAcceptWithDetails: (details) {
-                    final mod = details.data;
-                    final profile = widget.manager.activeProfile;
-                    
-                    _log.fine("Adding mod \"${mod.manifest.getName()}\" to profile \"${profile.name}\" at $index");
-                    
-                    setState(() {
-                      profile.mods.insert(index, mod.manifest.createModData());
-                      _mods.insert(index, mod);
-                    });
-                  },
-                  key: ObjectKey(mod.manifest.getIdentifier()),
-                  builder: (context, _, _) => ModListTile(
-                    mod: mod,
-                    data: data,
-                    onRemove: _remove,
+            child: Column(
+              spacing: 3,
+              children: [
+                Text("Profile - ${widget.manager.activeProfile.name}"),
+                Expanded(
+                  child: ReorderableListView.builder(
+                    itemBuilder: (context, index) {
+                      final mod = _mods[index];
+                      final data = widget.manager.activeProfile.mods[index];
+                      return DragTarget<Mod>(
+                        onAcceptWithDetails: (details) {
+                          final mod = details.data;
+                          final profile = widget.manager.activeProfile;
+                          
+                          _log.fine("Adding mod \"${mod.manifest.getName()}\" to profile \"${profile.name}\" at $index");
+                          
+                          setState(() {
+                            profile.mods.insert(index, mod.manifest.createModData());
+                            _mods.insert(index, mod);
+                          });
+                        },
+                        key: ObjectKey(mod.manifest.getIdentifier()),
+                        builder: (context, _, _) => ModListTile(
+                          mod: mod,
+                          data: data,
+                          onRemove: _remove,
+                        ),
+                      );
+                    },
+                    itemCount: _mods.length,
+                    onReorder: _reorder,
                   ),
-                );
-              },
-              itemCount: _mods.length,
-              onReorder: _reorder,
+                ),
+              ],
             ),
           ),
         )
@@ -108,7 +116,7 @@ class _ModListState extends State<ModList> {
           },
           itemCount: _mods.length,
         );
-        
+      
       Widget? library;
       if (_lastQuery.isEmpty) {
         library = AnimatedPositioned(
@@ -320,6 +328,8 @@ class _ModListState extends State<ModList> {
   }
 
   Future<void> _deleteMod(Mod mod) async {
+    //TODO: Add check to see if mod is used in other profiles
+
     final result = await showConfirmDialog(
       context,
       title: "Delete?",

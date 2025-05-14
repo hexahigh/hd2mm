@@ -10,6 +10,7 @@ part 'settings.g.dart';
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
+  disallowUnrecognizedKeys: true,
 )
 final class Settings {
   @DirectoryConverter()
@@ -66,7 +67,7 @@ final class Settings {
     final storagePath = Directory(
       Platform.isWindows
       ? path.join(Platform.environment["LOCALAPPDATA"]!, "hd2mm")
-      : "~/.local/share/hd2mm"
+      : path.join(Platform.environment["HOME"]!, ".local", "share", "hd2mm")
     );
     return Settings(
       tempPath: tempPath,
@@ -91,8 +92,7 @@ final class Settings {
       final binDir = await gamePath!.tryGetDirectory("bin");
       if (binDir == null) return false;
       
-      final exeName = Platform.isWindows ? "helldivers2.exe" : "helldivers";
-      if (!await binDir.containsFile(exeName)) return false;
+      if (!await binDir.containsFile("helldivers2.exe")) return false;
 
       if (!await gamePath!.containsDirectory("data")) return false;
 

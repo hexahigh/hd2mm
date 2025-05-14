@@ -1,8 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:async/async.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:json5/json5.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import '../helpers/dialog.dart';
@@ -285,7 +285,7 @@ final class _SettingsPageState extends State<SettingsPage> {
 
     if (await _settingsFile.exists()) {
       final content = await _settingsFile.readAsString();
-      final json = jsonDecode(content) as Map<String, dynamic>;
+      final json = JSON5.parse(content) as Map<String, dynamic>;
       final settings = Settings.fromJson(json);
       _apply(settings);
     } else {
@@ -469,7 +469,7 @@ final class _SettingsPageState extends State<SettingsPage> {
       skipList: _developerMode ? _skipList : const [],
     );
     final json = settings.toJson();
-    final content = jsonEncode(json);
+    final content = JSON5.stringify(json);
 
     await _settingsFile.writeAsString(content);
 

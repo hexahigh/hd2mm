@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:json5/json5.dart';
 import 'package:path/path.dart' as path;
 import 'package:json_annotation/json_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -56,7 +56,7 @@ sealed class ModManifest {
 
   static Future<ModManifest> fromFile(File file) async {
     final content = await file.readAsString();
-    final json = jsonDecode(content);
+    final json = JSON5.parse(content) as Map<String, dynamic>;
     return fromJson(json);
   }
 

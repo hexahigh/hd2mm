@@ -1,8 +1,8 @@
 import 'dart:collection';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive_io.dart' show extractFileToDisk;
+import 'package:json5/json5.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
@@ -72,7 +72,7 @@ final class ModManagerService {
 
         try {
           final source = await manifestFile.readAsString();
-          final json = jsonDecode(source);
+          final json = JSON5.parse(source) as Map<String, dynamic>;
           final manifest = ModManifest.fromJson(json);
           _mods.add(Mod(entry, manifest));
         } on Exception catch (e) {
@@ -88,7 +88,7 @@ final class ModManagerService {
     _profilesFile = File(path.join(_settings.storagePath.path, "profiles.json"));
     if (await _profilesFile.exists()) {
       final source = await _profilesFile.readAsString();
-      final json = jsonDecode(source);
+      final json = JSON5.parse(source) as Map<String, dynamic>;
       _profiles = ProfileData.fromJson(json);
       if (_profiles.profiles.isEmpty) _profiles.profiles.add(Profile("Default"));
       if (_profiles.active < 0) _profiles.active = 0;
@@ -119,7 +119,7 @@ final class ModManagerService {
     if (!_initialized) throw NotInitializedError("ModManagerService");
 
     final object = _profiles.toJson();
-    final content = jsonEncode(object);
+    final content = JSON5.stringify(object);
     await _profilesFile.writeAsString(content);
   }
 
@@ -161,7 +161,7 @@ final class ModManagerService {
 
     if (!await tmpDir.containsFile("manifest.json")) {
       final json = manifest.toJson();
-      final content = jsonEncode(json);
+      final content = JSON5.stringify(json);
       final file = File(path.join(tmpDir.path, "manifest.json"));
       await file.writeAsString(content);
     }

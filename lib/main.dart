@@ -1,10 +1,11 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat;
+import 'package:json5/json5.dart';
 import 'package:logging/logging.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'helpers/dialog.dart';
 import 'models/settings.dart';
 import 'pages/about.dart';
@@ -61,7 +62,7 @@ void main() {
     if (settingsFile.existsSync()) {
       try {
         final content = settingsFile.readAsStringSync();
-        final json = jsonDecode(content) as Map<String, dynamic>;
+        final json = JSON5.parse(content) as Map<String, dynamic>;
         final settings = Settings.fromJson(json);
         Logger.root.level = settings.logLevel;
       } catch (e, s) {
@@ -161,6 +162,7 @@ final class _TitleBarState extends State<_TitleBar> {
     iconMouseOver: Colors.green,
   );
   final _log = Logger("TitleBar");
+  PackageInfo? _info;
 
   ({String name, String version, String description})? _updateInfo;
 
@@ -168,7 +170,7 @@ final class _TitleBarState extends State<_TitleBar> {
   void initState() {
     super.initState();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForUpdate());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
@@ -196,10 +198,10 @@ final class _TitleBarState extends State<_TitleBar> {
                     ),
                   ),
                   Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("v2.0.0"),
-                      Text("(Preview 1)"),
+                      if (_info != null)
+                        Text(_info!.version),
                       if (kDebugMode)
                         Text(
                           "(Debug)",
@@ -246,6 +248,13 @@ final class _TitleBarState extends State<_TitleBar> {
     );
   }
 
+  Future<void> _load() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() => _info = info);
+
+    await _checkForUpdate();
+  }
+
   Future<void> _checkForUpdate() async {
     const token = String.fromEnvironment("GITHUB_TOKEN");
     if (token.isEmpty) {
@@ -267,7 +276,7 @@ final class _TitleBarState extends State<_TitleBar> {
       return;
     }
 
-    final json = jsonDecode(response.body);
+    final json = JSON5.parse(response.body);
     if (json is! Map<String, dynamic>) {
       _log.severe("JSON root was not of type `object`!");
       return;
@@ -327,6 +336,14 @@ final class _TitleBarState extends State<_TitleBar> {
       title: "Updating"
     );
 
+    await Future.delayed(Duration(seconds: 3));
 
+    closeDialog(context);
+    await showAcknowledgeDialog(
+      context,
+      title: "Update complete",
+      text: "The application will now quit. Please restart it.",
+    );
+    exit(0);
   }
 }

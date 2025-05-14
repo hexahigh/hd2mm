@@ -26,6 +26,8 @@ dependencies:
   desktop_drop: ^0.6.0
   idle_detector_wrapper: ^1.0.0
   url_launcher: ^6.3.1
+  package_info_plus: ^8.3.0
+  json5: ^0.8.2
 
 dev_dependencies:
   flutter_test:

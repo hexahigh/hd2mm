@@ -127,6 +127,27 @@ Future<String?> showPromptDialog(BuildContext context, {
   );
 }
 
+Future<void> showAcknowledgeDialog(BuildContext context, {
+  required String title,
+  required String text,
+}) {
+  return _showBaseDialog(
+    context: context,
+    title: title,
+    widget: Column(
+      mainAxisSize: MainAxisSize.min,
+      spacing: 5,
+      children: [
+        Text(text),
+        ElevatedButton(
+          onPressed: () => closeDialog(context),
+          child: Text("OK"),
+        ),
+      ],
+    ),
+  );
+}
+
 Future<T?> _showBaseDialog<T>({
   required BuildContext context,
   required String title,

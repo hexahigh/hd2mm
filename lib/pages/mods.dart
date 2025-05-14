@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:json5/json5.dart';
 import 'package:path/path.dart' as path;
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
@@ -274,7 +274,7 @@ final class _ModsPageState extends State<ModsPage> {
     }
 
     final content = await settingsFile.readAsString();
-    final json = jsonDecode(content);
+    final json = JSON5.parse(content) as Map<String, dynamic>;
     final settings = Settings.fromJson(json);
 
     if (!await settings.validate()) {

@@ -185,7 +185,7 @@ final class ModManagerService {
   }
 
   Future<void> removeMod(Mod mod) async {
-    //TODO: Remove mod from profiles that inculde it
+    //TODO: Remove mod from profiles that include it
     await mod.directory.delete(recursive: true);
     _mods.remove(mod);
   }
@@ -201,7 +201,7 @@ final class ModManagerService {
     final list = <Future<FileSystemEntity>>[];
     await for (final entry in dataDir.list()) {
       if (entry is! File) continue;
-      if (!path.basename(entry.path).contains("patch_")) continue;
+      if (!_patchRegex.hasMatch(path.basename(entry.path))) continue;
       list.add(entry.delete());
     }
 

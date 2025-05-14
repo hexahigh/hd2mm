@@ -34,8 +34,22 @@ class _ModListTileState extends State<ModListTile> {
           softWrap: false,
           overflow: TextOverflow.fade,
         ),
-        leading: manifest.iconPath != null
-          ? Image.file(mod.getFileSync(manifest.iconPath!)!)
+        leading: manifest.iconPath != null && manifest.iconPath!.isNotEmpty
+          ? Builder(
+            builder: (context) {
+              try {
+                return Image.file(
+                  mod.getFileSync(manifest.iconPath!)!,
+                  fit: BoxFit.contain,
+                );
+              } on Exception {
+                return Image.asset(
+                  "assets/images/icon.png",
+                  fit: BoxFit.contain,
+                );
+              }
+            }
+          )
           : null,
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -75,8 +89,22 @@ class _ModListTileState extends State<ModListTile> {
             softWrap: false,
             overflow: TextOverflow.fade,
           ),
-          leading: manifest.iconPath != null
-            ? Image.file(mod.getFileSync(manifest.iconPath!)!)
+          leading: manifest.iconPath != null && manifest.iconPath!.isNotEmpty
+            ? Builder(
+              builder: (context) {
+                try {
+                  return Image.file(
+                    mod.getFileSync(manifest.iconPath!)!,
+                    fit: BoxFit.contain,
+                  );
+                } on Exception {
+                  return Image.asset(
+                    "assets/images/icon.png",
+                    fit: BoxFit.contain,
+                  );
+                }
+              }
+            )
             : null,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -102,13 +130,24 @@ class _ModListTileState extends State<ModListTile> {
               final index = kv.key;
               final option = kv.value;
               return ListTile(
-                leading: option.image != null
+                leading: option.image != null && option.image!.isNotEmpty
                   ? SizedBox(
                     width: 50,
                     height: 50,
-                    child: Image.file(
-                      mod.getFileSync(option.image!)!,
-                      fit: BoxFit.contain,
+                    child: Builder(
+                      builder: (context) {
+                        try {
+                          return Image.file(
+                            mod.getFileSync(option.image!)!,
+                            fit: BoxFit.contain,
+                          );
+                        } on Exception {
+                          return Image.asset(
+                            "assets/images/icon.png",
+                            fit: BoxFit.contain,
+                          );
+                        }
+                      }
                     ),
                   )
                   : null,
@@ -121,13 +160,24 @@ class _ModListTileState extends State<ModListTile> {
                         value: sub,
                         child: Row(
                           children: [
-                            if (sub.image != null)
+                            if (sub.image != null && sub.image!.isNotEmpty)
                               SizedBox(
                                 width: 40,
                                 height: 40,
-                                child: Image.file(
-                                  mod.getFileSync(sub.image!)!,
-                                  fit: BoxFit.contain,
+                                child: Builder(
+                                  builder: (context) {
+                                    try {
+                                      return Image.file(
+                                        mod.getFileSync(sub.image!)!,
+                                        fit: BoxFit.contain,
+                                      );
+                                    } on Exception {
+                                      return Image.asset(
+                                        "assets/images/icon.png",
+                                        fit: BoxFit.contain,
+                                      );
+                                    }
+                                  }
                                 ),
                               ),
                             Column(
@@ -167,8 +217,22 @@ class _ModListTileState extends State<ModListTile> {
             softWrap: false,
             overflow: TextOverflow.fade,
           ),
-          leading: manifest.iconPath != null
-            ? Image.file(mod.getFileSync(manifest.iconPath!)!)
+          leading: manifest.iconPath != null && manifest.iconPath!.isNotEmpty
+            ? Builder(
+              builder: (context) {
+                try {
+                  return Image.file(
+                    mod.getFileSync(manifest.iconPath!)!,
+                    fit: BoxFit.contain,
+                  );
+                } on Exception {
+                  return Image.asset(
+                    "assets/images/icon.png",
+                    fit: BoxFit.contain,
+                  );
+                }
+              },
+            )
             : null,
           trailing: Row(
             spacing: 3,

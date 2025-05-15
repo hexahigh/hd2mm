@@ -619,9 +619,26 @@ class _CreatePageState extends State<CreatePage> {
               label: Text("Back"),
             ),
             Spacer(),
-            ElevatedButton(
-              onPressed: null,
-              child: Text("Compile"),
+            ElevatedButton.icon(
+              onPressed: _preview,
+              icon: const Icon(Icons.remove_red_eye),
+              label: Text("Preview"),
+            ),
+            ElevatedButton.icon(
+              onPressed: _load,
+              icon: const Icon(Icons.open_in_browser),
+              label: Text("Load"),
+            ),
+            ElevatedButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.save),
+              label: Text("Save"),
+            ),
+            Spacer(),
+            FilledButton.icon(
+              onPressed: _compile,
+              icon: const Icon(Icons.build),
+              label: Text("Compile"),
             ),
           ],
         ),
@@ -637,5 +654,21 @@ class _CreatePageState extends State<CreatePage> {
     )) {
       Navigator.pop(context);
     }
+  }
+
+  Future<void> _preview() async {
+
+  }
+
+  Future<void> _load() async {
+    
+  }
+
+  Future<void> _save() async {
+
+  }
+
+  Future<void> _compile() async {
+
   }
 }

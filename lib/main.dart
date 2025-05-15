@@ -63,7 +63,7 @@ void main() {
     if (settingsFile.existsSync()) {
       try {
         final content = settingsFile.readAsStringSync();
-        final json = JSON5.parse(content) as Map<String, dynamic>;
+        final json = json5Decode(content) as Map<String, dynamic>;
         final settings = Settings.fromJson(json);
         Logger.root.level = settings.logLevel;
       } catch (e, s) {
@@ -278,7 +278,7 @@ final class _TitleBarState extends State<_TitleBar> {
       return;
     }
 
-    final json = JSON5.parse(response.body);
+    final json = json5Decode(response.body);
     if (json is! Map<String, dynamic>) {
       _log.severe("JSON root was not of type `object`!");
       return;

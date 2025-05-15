@@ -1,11 +1,147 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:json5/json5.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:path/path.dart' as path;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
 import '../helpers/dialog.dart';
+import '../helpers/file_converter.dart';
+import '../helpers/text_converter.dart';
+
+part 'create.g.dart';
+
+@JsonSerializable(
+  checked: true,
+  disallowUnrecognizedKeys: true,
+)
+final class _SubOptionState {
+  bool expanded;
+  @TextEditingControllerConverter()
+  final TextEditingController nameController;
+  String? nameError;
+  @TextEditingControllerConverter()
+  final TextEditingController descriptionController;
+  @TextEditingControllerConverter()
+  TextEditingController imagePathController;
+  String? includeError;
+  @FileConverter()
+  final List<File> includeFiles;
+
+  _SubOptionState(
+    this.expanded,
+    this.nameController,
+    this.nameError,
+    this.descriptionController,
+    this.imagePathController,
+    this.includeError,
+    this.includeFiles,
+  );
+
+  _SubOptionState.empty()
+    : expanded = false,
+    nameController = TextEditingController(),
+    nameError = "Name can not be empty!",
+    descriptionController = TextEditingController(),
+    imagePathController = TextEditingController(),
+    includeError = "This sub-option needs to include files!",
+    includeFiles = <File>[];
+  
+  factory _SubOptionState.fromJson(Map<String, dynamic> json) => _$SubOptionStateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SubOptionStateToJson(this);
+}
+
+@JsonSerializable(
+  checked: true,
+  disallowUnrecognizedKeys: true,
+)
+final class _OptionState {
+  bool expanded;
+  @TextEditingControllerConverter()
+  final TextEditingController nameController;
+  String? nameError;
+  @TextEditingControllerConverter()
+  final TextEditingController descriptionController;
+  @TextEditingControllerConverter()
+  TextEditingController imagePathController;
+  bool activeIncludes;
+  String? includeError;
+  @FileConverter()
+  final List<File> includeFiles;
+  final List<_SubOptionState> subOptions;
+
+  _OptionState(
+    this.expanded,
+    this.nameController,
+    this.nameError,
+    this.descriptionController,
+    this.imagePathController,
+    this.activeIncludes,
+    this.includeError,
+    this.includeFiles,
+    this.subOptions,
+  );
+
+  _OptionState.empty()
+    : expanded = false,
+    nameController = TextEditingController(),
+    nameError = "Name can not be empty!",
+    descriptionController = TextEditingController(),
+    imagePathController = TextEditingController(),
+    activeIncludes = false,
+    includeError = "This option needs to include files or have some sub-options!",
+    includeFiles = <File>[],
+    subOptions = <_SubOptionState>[];
+  
+  factory _OptionState.fromJson(Map<String, dynamic> json) => _$OptionStateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$OptionStateToJson(this);
+}
+
+@JsonSerializable(
+  checked: true,
+  disallowUnrecognizedKeys: true,
+)
+final class _ModProject {
+  @TextEditingControllerConverter()
+  TextEditingController guidController;
+  String? guidError;
+  @TextEditingControllerConverter()
+  final TextEditingController nameController;
+  String? nameError;
+  @TextEditingControllerConverter()
+  final TextEditingController descriptionController;
+  @TextEditingControllerConverter()
+  TextEditingController iconPathController;
+  final List<_OptionState> options;
+
+  _ModProject(
+    this.guidController,
+    this.guidError,
+    this.nameController,
+    this.nameError,
+    this.descriptionController,
+    this.iconPathController,
+    this.options,
+  );
+
+  _ModProject.empty()
+    : guidController = TextEditingController(),
+    guidError = "GUID can not be empty!",
+    nameController = TextEditingController(),
+    nameError = "Name can not be empty!",
+    descriptionController = TextEditingController(),
+    iconPathController = TextEditingController(),
+    options = <_OptionState>[];
+  
+  factory _ModProject.fromJson(Map<String, dynamic> json) => _$ModProjectFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ModProjectToJson(this);
+}
 
 class CreatePage extends StatefulWidget {
   const CreatePage({super.key});
@@ -14,39 +150,9 @@ class CreatePage extends StatefulWidget {
   State<CreatePage> createState() => _CreatePageState();
 }
 
-final class _SubOptionState {
-  bool expanded = false;
-  final nameController = TextEditingController();
-  String? nameError = "Name can not be empty!";
-  final descriptionController = TextEditingController();
-  var imagePathController = TextEditingController();
-  String? includeError = "This sub-option needs to include files!";
-  final includeFiles = <File>[];
-}
-
-final class _OptionState {
-  bool expanded = false;
-  final nameController = TextEditingController();
-  String? nameError = "Name can not be empty!";
-  final descriptionController = TextEditingController();
-  var imagePathController = TextEditingController();
-  bool activeIncludes = false;
-  String? includeError = "This option needs to include files or have some sub-options!";
-  final includeFiles = <File>[];
-  final subOptions = <_SubOptionState>[];
-
-  _OptionState();
-}
-
 class _CreatePageState extends State<CreatePage> {
   static final _patchFileRegex = RegExp(r"^[a-z0-9]{16}\.patch_[0-9]+(\.(stream|gpu_resources))?$");
-  var _guidController = TextEditingController();
-  String? _guidError = "GUID can not be empty!";
-  final _nameController = TextEditingController();
-  String? _nameError = "Name can not be empty!";
-  final _descriptionController = TextEditingController();
-  var _iconPathController = TextEditingController();
-  final _options = <_OptionState>[];
+  var _mod = _ModProject.empty();
 
   @override
   Widget build(BuildContext context) {
@@ -71,32 +177,32 @@ class _CreatePageState extends State<CreatePage> {
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
                 title: TextField(
-                  controller: _guidController,
+                  controller: _mod.guidController,
                   decoration: InputDecoration(
-                    errorText: _guidError,
+                    errorText: _mod.guidError,
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (value) {
                     if (value.isEmpty) {
-                      setState(() => _guidError = "GUID can not be empty!");
+                      setState(() => _mod.guidError = "GUID can not be empty!");
                       return;
                     }
                     try {
                       UuidValue.withValidation(value);
                     } on FormatException {
-                      setState(() => _guidError = "GUID is invalid!");
+                      setState(() => _mod.guidError = "GUID is invalid!");
                       return;
                     } catch (ex) {
-                      _guidError = ex.toString();
+                      _mod.guidError = ex.toString();
                       return;
                     }
-                    setState(() => _guidError = null);
+                    setState(() => _mod.guidError = null);
                   },
                 ),
                 trailing: IconButton.outlined(
                   onPressed: () => setState(() {
-                    _guidController = TextEditingController(text: Uuid().v4());
-                    _guidError = null;
+                    _mod.guidController = TextEditingController(text: Uuid().v4());
+                    _mod.guidError = null;
                   }),
                   icon: const Icon(Icons.refresh),
                 ),
@@ -107,18 +213,18 @@ class _CreatePageState extends State<CreatePage> {
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
                 title: TextField(
-                  controller: _nameController,
+                  controller: _mod.nameController,
                   decoration: InputDecoration(
-                    errorText: _nameError,
+                    errorText: _mod.nameError,
                     border: OutlineInputBorder(),
                   ),
                   onChanged: (value) {
                     value = value.trim();
                     if (value.isEmpty) {
-                      setState(() => _nameError = "Name can not be empty!");
+                      setState(() => _mod.nameError = "Name can not be empty!");
                       return;
                     }
-                    setState(() => _nameError = null);
+                    setState(() => _mod.nameError = null);
                   },
                 ),
               ),
@@ -128,7 +234,7 @@ class _CreatePageState extends State<CreatePage> {
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
                 title: TextField(
-                  controller: _descriptionController,
+                  controller: _mod.descriptionController,
                   keyboardType: TextInputType.multiline,
                   maxLines: null,
                   decoration: InputDecoration(
@@ -143,11 +249,11 @@ class _CreatePageState extends State<CreatePage> {
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
                 title: TextField(
-                  controller: _iconPathController,
+                  controller: _mod.iconPathController,
                   readOnly: true,
                   decoration: InputDecoration(
                     suffix: IconButton(
-                      onPressed: () => setState(() => _iconPathController = TextEditingController()),
+                      onPressed: () => setState(() => _mod.iconPathController = TextEditingController()),
                       icon: const Icon(Icons.backspace_outlined),
                     ),
                   ),
@@ -160,7 +266,7 @@ class _CreatePageState extends State<CreatePage> {
                       lockParentWindow: true,
                     );
                     if (result == null) return;
-                    setState(() => _iconPathController = TextEditingController(text: result.files[0].path!));
+                    setState(() => _mod.iconPathController = TextEditingController(text: result.files[0].path!));
                   },
                   icon: const Icon(Icons.folder_open),
                 ),
@@ -170,7 +276,7 @@ class _CreatePageState extends State<CreatePage> {
                 "Options:",
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              ..._options
+              ..._mod.options
                 .asMap()
                 .entries
                 .map((entry) {
@@ -214,25 +320,25 @@ class _CreatePageState extends State<CreatePage> {
                             MenuItemButton(
                               onPressed: index > 0
                                 ? () => setState(() {
-                                  _options.remove(option);
-                                  _options.insert(index - 1, option);
+                                  _mod.options.remove(option);
+                                  _mod.options.insert(index - 1, option);
                                 })
                                 : null,
                               trailingIcon: const Icon(Icons.arrow_upward),
                               child: Text("Move up"),
                             ),
                             MenuItemButton(
-                              onPressed: index < _options.length - 1
+                              onPressed: index < _mod.options.length - 1
                                 ? () => setState(() {
-                                  _options.remove(option);
-                                  _options.insert(index + 1, option);
+                                  _mod.options.remove(option);
+                                  _mod.options.insert(index + 1, option);
                                 })
                                 : null,
                               trailingIcon: const Icon(Icons.arrow_downward),
                               child: Text("Move down"),
                             ),
                             MenuItemButton(
-                              onPressed: () => setState(() => _options.remove(option)),
+                              onPressed: () => setState(() => _mod.options.remove(option)),
                               trailingIcon: const Icon(Icons.delete_outline),
                               child: Text("Remove"),
                             ),
@@ -383,7 +489,7 @@ class _CreatePageState extends State<CreatePage> {
                           Spacer(),
                           IconButton(
                             onPressed: () => setState(() {
-                              option.subOptions.add(_SubOptionState());
+                              option.subOptions.add(_SubOptionState.empty());
                               if (option.includeFiles.isEmpty && option.subOptions.isEmpty) {
                                 option.includeError = "This option needs to include files or have some sub-options!";
                               } else {
@@ -602,7 +708,7 @@ class _CreatePageState extends State<CreatePage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   IconButton(
-                    onPressed: () => setState(() => _options.add(_OptionState())),
+                    onPressed: () => setState(() => _mod.options.add(_OptionState.empty())),
                     icon: const Icon(Icons.add),
                   ),
                 ],
@@ -661,11 +767,61 @@ class _CreatePageState extends State<CreatePage> {
   }
 
   Future<void> _load() async {
+    if (!await showConfirmDialog(
+      context,
+      title: "Load?",
+      question: "All current progress will be lost!",
+    )) {
+      return;
+    }
+
+    final result = await FilePicker.platform.pickFiles(
+      allowedExtensions: const [ "mm2proj" ],
+      dialogTitle: "Load project",
+      lockParentWindow: true,
+      type: FileType.custom,
+    );
+
+    final fileName = result?.files[0].path;
+    if (fileName == null) return;
+
+    showWaitDialog(
+      context,
+      title: "Loading",
+    );
     
+    final content = await File(fileName).readAsString();
+    final json = json5Decode(content) as Map<String, dynamic>;
+    final project = _ModProject.fromJson(json);
+
+    setState(() => _mod = project);
+
+    closeDialog(context);
   }
 
   Future<void> _save() async {
+    var result = await FilePicker.platform.saveFile(
+      allowedExtensions: const [ "mm2proj" ],
+      dialogTitle: "Save project",
+      lockParentWindow: true,
+      type: FileType.custom,
+    );
+    if (result == null) return;
 
+    showWaitDialog(
+      context,
+      title: "Saving",
+    );
+
+    if (path.extension(result) != ".mm2proj") {
+      result += ".mm2proj";
+    }
+    
+    final json = _mod.toJson();
+    final content = jsonEncode(json);
+    await File(result).writeAsString(content);
+
+    closeDialog(context);
   }
 
   Future<void> _compile() async {

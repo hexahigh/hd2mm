@@ -56,7 +56,7 @@ sealed class ModManifest {
 
   static Future<ModManifest> fromFile(File file) async {
     final content = await file.readAsString();
-    final json = JSON5.parse(content) as Map<String, dynamic>;
+    final json = json5Decode(content) as Map<String, dynamic>;
     return fromJson(json);
   }
 

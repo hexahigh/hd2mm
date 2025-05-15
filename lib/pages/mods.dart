@@ -275,7 +275,7 @@ final class _ModsPageState extends State<ModsPage> {
     }
 
     final content = await settingsFile.readAsString();
-    final json = JSON5.parse(content) as Map<String, dynamic>;
+    final json = json5Decode(content) as Map<String, dynamic>;
     final settings = Settings.fromJson(json);
 
     if (!await settings.validate()) {

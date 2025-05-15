@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:async/async.dart';
 import 'package:file_picker/file_picker.dart';
@@ -285,7 +286,7 @@ final class _SettingsPageState extends State<SettingsPage> {
 
     if (await _settingsFile.exists()) {
       final content = await _settingsFile.readAsString();
-      final json = JSON5.parse(content) as Map<String, dynamic>;
+      final json = json5Decode(content) as Map<String, dynamic>;
       final settings = Settings.fromJson(json);
       _apply(settings);
     } else {
@@ -469,7 +470,7 @@ final class _SettingsPageState extends State<SettingsPage> {
       skipList: _developerMode ? _skipList : const [],
     );
     final json = settings.toJson();
-    final content = JSON5.stringify(json);
+    final content = jsonEncode(json);
 
     await _settingsFile.writeAsString(content);
 

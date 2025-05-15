@@ -9,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'helpers/dialog.dart';
 import 'models/settings.dart';
 import 'pages/about.dart';
+import 'pages/create.dart';
 import 'pages/help.dart';
 import 'pages/mods.dart';
 import 'pages/settings.dart';
@@ -127,6 +128,7 @@ class Hd2mmApp extends StatelessWidget {
                       Widget page = switch (settings.name) {
                         "/mods" => const ModsPage(),
                         "/settings" => const SettingsPage(),
+                        "/create" => CreatePage(),
                         "/help" => HelpPage(),
                         "/about" => AboutPage(),
                         "/error" => ErrorPage(arguments: settings.arguments),

@@ -5,7 +5,7 @@ final class UuidValueConverter extends JsonConverter<UuidValue, String> {
   const UuidValueConverter();
 
   @override
-  UuidValue fromJson(String json) => UuidValue.withValidation(json);
+  UuidValue fromJson(String json) => UuidValue.withValidation(json, ValidationMode.nonStrict);
 
   @override
   String toJson(UuidValue object) => object.uuid;

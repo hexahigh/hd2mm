@@ -82,7 +82,7 @@ final class _ModsPageState extends State<ModsPage> {
                 label: Text("Add"),
               ),
               ElevatedButton.icon(
-                onPressed: null,
+                onPressed: () => Navigator.pushNamed(context, "/create"),
                 icon: const Icon(Icons.create),
                 label: Text("Create"),
               ),

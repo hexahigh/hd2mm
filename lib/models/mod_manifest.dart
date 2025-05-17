@@ -97,7 +97,6 @@ sealed class ModManifest {
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
-  disallowUnrecognizedKeys: true,
 )
 final class ModManifestLegacy extends ModManifest {
   @override
@@ -130,9 +129,6 @@ final class ModManifestLegacy extends ModManifest {
     this.generated = false,
   }) {
     if (guid.isNil) throw FormatException("`Guid` can not be Nil!");
-    if (name.isEmpty) throw FormatException("`Name` can not be empty!");
-    if (iconPath?.isEmpty ?? false) throw FormatException("If set `IconPath` can not be empty!");
-    if (options?.isEmpty ?? false) throw FormatException("If set `Options` can not be empty!");
   }
 
   factory ModManifestLegacy.fromJson(Map<String, dynamic> json) => _$ModManifestLegacyFromJson(json);
@@ -174,7 +170,6 @@ final class ModManifestLegacy extends ModManifest {
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
-  disallowUnrecognizedKeys: true,
 )
 final class ModSubOption {
   @JsonKey(required: true)
@@ -191,11 +186,7 @@ final class ModSubOption {
     required this.description,
     this.image,
     required this.include,
-  }) {
-    if (name.isEmpty) throw FormatException("`Name` can not be empty!");
-    if (image?.isEmpty ?? false) throw FormatException("`Image` can not be empty!");
-    if (include.isEmpty) throw FormatException("`Include` can not be empty!");
-  }
+  });
 
   factory ModSubOption.fromJson(Map<String, dynamic> json) => _$ModSubOptionFromJson(json);
 
@@ -225,12 +216,7 @@ final class ModOption {
     this.image,
     this.include,
     this.subOptions,
-  }) {
-    if (name.isEmpty) throw FormatException("`Name` can not be empty!");
-    if (image?.isEmpty ?? false) throw FormatException("If set`Image` can not be empty!");
-    if (include?.isEmpty ?? false) throw FormatException("If set `Include` can not be empty!");
-    if (subOptions?.isEmpty ?? false) throw FormatException("If set `SubOptions` can not be empty!");
-  }
+  });
 
   factory ModOption.fromJson(Map<String, dynamic> json) => _$ModOptionFromJson(json);
 
@@ -240,7 +226,6 @@ final class ModOption {
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
-  disallowUnrecognizedKeys: true,
 )
 final class ModManifestV1 extends ModManifest {
   @override
@@ -269,9 +254,6 @@ final class ModManifestV1 extends ModManifest {
     this.options,
   }) : assert(version == 1) {
     if (guid.isNil) throw FormatException("`Guid` can not be Nil!");
-    if (name.isEmpty) throw FormatException("`Name` can not be empty!");
-    if (iconPath?.isEmpty ?? false) throw FormatException("If set `IconPath` can not be empty!");
-    if (options?.isEmpty ?? false) throw FormatException("If set `Options` can not be empty!");
   }
 
   factory ModManifestV1.fromJson(Map<String, dynamic> json) => _$ModManifestV1FromJson(json);

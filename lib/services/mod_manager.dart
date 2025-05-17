@@ -25,6 +25,11 @@ enum ManagerInitProgress {
 
 typedef _PatchFileTriplet = ({File? patch, File? gpuResources, File? stream});
 
+enum _RarHandler {
+  unrar,
+  $7zip,
+}
+
 final class ModManagerService {
   Profile get activeProfile => _profiles.profiles[_profiles.active];
 
@@ -38,11 +43,16 @@ final class ModManagerService {
 
   UnmodifiableListView<Profile> get profiles => UnmodifiableListView(_profiles.profiles);
 
+  List<String> get supportedExtensions => _extensions;
+
   static final _patchFileRegex = RegExp(r"^[a-z0-9]{16}\.patch_[0-9]+(\.(stream|gpu_resources))?$");
   static final _patchRegex = RegExp(r"\.patch_[0-9]+");
   static final _patchIndexRegex = RegExp(r"^(?:[a-z0-9]{16}\.patch_)([0-9]+)(?:(?:\.(?:stream|gpu_resources))?)$");
   final _log = Logger("ModManagerService");
   bool _initialized = false;
+  _RarHandler? _rarHandler;
+  bool _7zSupported = false;
+  late List<String> _extensions;
   late Settings _settings;
   late Directory _modsDir;
   final List<Mod> _mods = [];
@@ -100,6 +110,59 @@ final class ModManagerService {
 
     //TODO: Check profiles
 
+    _log.fine("Checking for RAR support");
+    final extensions = {
+      "tar.gz",
+      "tgz",
+      "tar.bz2",
+      "tbz",
+      "tar.xz",
+      "txz",
+      "tar",
+      "zip",
+    };
+
+    ProcessResult? unrarRes;
+    try {
+      unrarRes = await Process.run(
+        Platform.isWindows ? "unrar.exe" : "unrar",
+        const [],
+        runInShell: true,
+      );
+    } on ProcessException catch (ex) {
+      _log.finer("error looking for `unrar`", ex);
+    }
+
+    ProcessResult? $7zipRes;
+    try {
+      $7zipRes = await Process.run(
+        Platform.isWindows ? "7z.exe" : "7z",
+        const [],
+        runInShell: true,
+      );
+    } on ProcessException catch (ex) {
+      _log.finer("error looking for `7zip`", ex);
+    }
+
+    if (unrarRes?.exitCode == 0) {
+      _rarHandler ??= _RarHandler.unrar;
+      extensions.add("rar");
+    } else {
+      _log.fine("`unrar` not supported");
+    }
+
+    if ($7zipRes?.exitCode == 0) {
+      _rarHandler ??= _RarHandler.$7zip;
+      _7zSupported = true;
+      extensions.add("rar");
+      extensions.add("7z");
+    } else {
+      _log.fine("`7zip` not supported");
+    }
+
+    _extensions = extensions.toList(growable: false);
+    _log.fine("Set supported extensions");
+
     _initialized = true;
     progressCallback?.call(ManagerInitProgress.complete);
     _log.info("Initialization complete.");
@@ -149,7 +212,7 @@ final class ModManagerService {
     await tmpDir.create(recursive: true);
 
     _log.fine("Extracting archive");
-    await extractFileToDisk(archiveFile.path, tmpDir.path);
+    await _extractFileToDir(archiveFile, tmpDir);
 
     _log.fine("Reading manifest");
     final manifest = await ModManifest.fromDirectory(tmpDir);
@@ -390,5 +453,9 @@ final class ModManagerService {
     _profiles.active--;
     if (_profiles.active < 0) _profiles.active = 0;
     if (_profiles.active >= _profiles.profiles.length) _profiles.active = _profiles.profiles.length - 1;
+  }
+
+  Future<void> _extractFileToDir(File archiveFile, Directory targetDir) async {
+    await extractFileToDisk(archiveFile.path, targetDir.path);
   }
 }

@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:archive/archive_io.dart';
 
 import '../helpers/dialog.dart';
 import '../helpers/file_converter.dart';
@@ -248,15 +249,27 @@ class _CreatePageState extends State<CreatePage> {
                   "Icon:",
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
-                title: TextField(
-                  controller: _mod.iconPathController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    suffix: IconButton(
-                      onPressed: () => setState(() => _mod.iconPathController = TextEditingController()),
-                      icon: const Icon(Icons.backspace_outlined),
+                title: Row(
+                  spacing: 5,
+                  children: [
+                    if (_mod.iconPathController.text.isNotEmpty)
+                      Image.file(
+                        File(_mod.iconPathController.text),
+                        fit: BoxFit.contain,
+                      ),
+                    Expanded(
+                      child: TextField(
+                        controller: _mod.iconPathController,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          suffix: IconButton(
+                            onPressed: () => setState(() => _mod.iconPathController = TextEditingController()),
+                            icon: const Icon(Icons.backspace_outlined),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
                 trailing: IconButton.outlined(
                   onPressed: () async {
@@ -285,7 +298,7 @@ class _CreatePageState extends State<CreatePage> {
                   return ExpansionTile(
                     key: ObjectKey(option),
                     initiallyExpanded: option.expanded,
-                    onExpansionChanged: (value) => option.expanded = value,
+                    onExpansionChanged: (value) => setState(() => option.expanded = value),
                     leading: Text(
                       "Name:",
                       style: Theme.of(context).textTheme.labelLarge,
@@ -344,7 +357,10 @@ class _CreatePageState extends State<CreatePage> {
                             ),
                           ],
                         ),
-                        const Icon(Icons.expand_more),
+                        if(option.expanded)
+                          const Icon(Icons.expand_less)
+                        else
+                          const Icon(Icons.expand_more),
                       ],
                     ),
                     children: [
@@ -368,15 +384,26 @@ class _CreatePageState extends State<CreatePage> {
                           "Image:",
                           style: Theme.of(context).textTheme.labelLarge,
                         ),
-                        title: TextField(
-                          controller: option.imagePathController,
-                          readOnly: true,
-                          decoration: InputDecoration(
-                            suffix: IconButton(
-                              onPressed: () => setState(() => option.imagePathController = TextEditingController()),
-                              icon: const Icon(Icons.backspace_outlined),
+                        title: Row(
+                          children: [
+                            if (option.imagePathController.text.isNotEmpty)
+                              Image.file(
+                                File(option.imagePathController.text),
+                                fit: BoxFit.contain,
+                              ),
+                            Expanded(
+                              child: TextField(
+                                controller: option.imagePathController,
+                                readOnly: true,
+                                decoration: InputDecoration(
+                                  suffix: IconButton(
+                                    onPressed: () => setState(() => option.imagePathController = TextEditingController()),
+                                    icon: const Icon(Icons.backspace_outlined),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                         trailing: IconButton.outlined(
                           onPressed: () async {
@@ -487,7 +514,7 @@ class _CreatePageState extends State<CreatePage> {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           Spacer(),
-                          IconButton(
+                          TextButton.icon(
                             onPressed: () => setState(() {
                               option.subOptions.add(_SubOptionState.empty());
                               if (option.includeFiles.isEmpty && option.subOptions.isEmpty) {
@@ -497,6 +524,7 @@ class _CreatePageState extends State<CreatePage> {
                               }
                             }),
                             icon: const Icon(Icons.add),
+                            label: Text("Add Sub-Option"),
                           ),
                         ],
                       ),
@@ -511,7 +539,7 @@ class _CreatePageState extends State<CreatePage> {
                             child: ExpansionTile(
                               key: ObjectKey(sub),
                               initiallyExpanded: sub.expanded,
-                              onExpansionChanged: (value) => sub.expanded = value,
+                              onExpansionChanged: (value) => setState(() => sub.expanded = value),
                               leading: Text(
                                 "Name:",
                                 style: Theme.of(context).textTheme.labelLarge,
@@ -577,7 +605,10 @@ class _CreatePageState extends State<CreatePage> {
                                       ),
                                     ],
                                   ),
-                                  const Icon(Icons.expand_more),
+                                  if (sub.expanded)
+                                    const Icon(Icons.expand_less)
+                                  else
+                                    const Icon(Icons.expand_more),
                                 ],
                               ),
                               children: [
@@ -601,15 +632,26 @@ class _CreatePageState extends State<CreatePage> {
                                     "Image:",
                                     style: Theme.of(context).textTheme.labelLarge,
                                   ),
-                                  title: TextField(
-                                    controller: sub.imagePathController,
-                                    readOnly: true,
-                                    decoration: InputDecoration(
-                                      suffix: IconButton(
-                                        onPressed: () => setState(() => sub.imagePathController = TextEditingController()),
-                                        icon: const Icon(Icons.backspace_outlined),
+                                  title: Row(
+                                    children: [
+                                      if (sub.imagePathController.text.isNotEmpty)
+                                        Image.file(
+                                          File(sub.imagePathController.text),
+                                          fit: BoxFit.contain,
+                                        ),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: sub.imagePathController,
+                                          readOnly: true,
+                                          decoration: InputDecoration(
+                                            suffix: IconButton(
+                                              onPressed: () => setState(() => sub.imagePathController = TextEditingController()),
+                                              icon: const Icon(Icons.backspace_outlined),
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
                                   trailing: IconButton.outlined(
                                     onPressed: () async {
@@ -707,9 +749,10 @@ class _CreatePageState extends State<CreatePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  IconButton(
+                  TextButton.icon(
                     onPressed: () => setState(() => _mod.options.add(_OptionState.empty())),
                     icon: const Icon(Icons.add),
+                    label: Text("Add Option"),
                   ),
                 ],
               ),
@@ -763,7 +806,7 @@ class _CreatePageState extends State<CreatePage> {
   }
 
   Future<void> _preview() async {
-
+    //TODO: preview
   }
 
   Future<void> _load() async {
@@ -825,6 +868,36 @@ class _CreatePageState extends State<CreatePage> {
   }
 
   Future<void> _compile() async {
+    var result = await FilePicker.platform.saveFile(
+      allowedExtensions: const [ "zip" ],
+      dialogTitle: "Save project",
+      lockParentWindow: true,
+      type: FileType.custom,
+    );
+    if (result == null) return;
 
+    showWaitDialog(
+      context,
+      title: "Saving",
+    );
+
+    if (path.extension(result) != ".zip") {
+      result += ".zip";
+    }
+    
+    final tmpPath = path.withoutExtension(result);
+    final tmpDir = Directory(tmpPath);
+    await tmpDir.create(recursive: true);
+
+    
+
+    final archive = createArchiveFromDirectory(tmpDir, includeDirName: false);
+    final encoder = ZipEncoder();
+    final zipData = encoder.encodeBytes(archive);
+
+    await File(result).writeAsBytes(zipData);
+
+    await tmpDir.delete(recursive: true);
+    closeDialog(context);
   }
 }

@@ -407,16 +407,7 @@ final class _ModsPageState extends State<ModsPage> {
   Future<void> _add() async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
-      allowedExtensions: const [
-        "tar.gz",
-        "tgz",
-        "tar.bz2",
-        "tbz",
-        "tar.xz",
-        "txz",
-        "tar",
-        "zip",
-      ],
+      allowedExtensions: _manager.supportedExtensions,
       dialogTitle: "Please select mod archives to add.",
       lockParentWindow: true,
       type: FileType.custom,

@@ -364,9 +364,10 @@ final class _SettingsPageState extends State<SettingsPage> {
         break;
       }
     } else {
-      final paths = const <String>[
-        "~/.steam/steam/steamapps/common/Helldivers 2",
-        "~/.local/share/Steam/steamapps/common/Helldivers 2",
+      final home = Platform.environment["HOME"]!;
+      final paths = <String>[
+        path.join(home, ".steam/steam/steamapps/common/Helldivers 2"),
+        path.join(home, ".local/share/Steam/steamapps/common/Helldivers 2"),
       ];
       for (final dirPath in paths) {
         final dir = Directory(dirPath);
@@ -521,7 +522,9 @@ final class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    if (!await FileSystemEntity.isDirectory(storagePath)) {
+    try {
+      final _ = Directory(storagePath);
+    } catch (_) {
       setState(() => _storagePathError = "Path is not a directory");
       return;
     }
@@ -535,7 +538,9 @@ final class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    if (!await FileSystemEntity.isDirectory(tempPath)) {
+    try {
+      final _ = Directory(tempPath);
+    } catch (_) {
       setState(() => _tempPathError = "Path is not a directory");
       return;
     }

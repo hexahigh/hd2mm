@@ -456,6 +456,67 @@ final class ModManagerService {
   }
 
   Future<void> _extractFileToDir(File archiveFile, Directory targetDir) async {
-    await extractFileToDisk(archiveFile.path, targetDir.path);
+    if (path.extension(archiveFile.path) == ".rar") {
+      if (_rarHandler == null) throw Exception("`rar` format not supported!");
+
+      late final ProcessResult result;
+      switch (_rarHandler!) {
+        case _RarHandler.$7zip:
+          result = await Process.run(
+            Platform.isWindows ? "7z.exe" : "7z",
+            [
+              "x",
+              "-o${targetDir.path}",
+              archiveFile.path,
+            ],
+            runInShell: true,
+            stdoutEncoding: Utf8Codec(),
+          );
+          break;
+        case _RarHandler.unrar:
+          result = await Process.run(
+            Platform.isWindows ? "unrar.exe" : "unrar",
+            [
+              "x",
+              archiveFile.path,
+              targetDir.path,
+            ],
+            runInShell: true,
+            stdoutEncoding: Utf8Codec(),
+          );
+          break;
+      }
+
+      if (result.exitCode != 0) {
+        final out = result.stdout as String;
+        final err = result.stderr as String;
+        final message = "Special extraction (rar) failed!\nCode: ${result.exitCode}\nStdOut:\n$out\nStdErr:\n$err";
+        _log.severe(message);
+        throw Exception(message);
+      }
+    } else if (path.extension(archiveFile.path) == ".7z") {
+      if (!_7zSupported) throw Exception("`7z` format not supported!");
+
+      final result = await Process.run(
+        Platform.isWindows ? "7z.exe" : "7z",
+        [
+          "x",
+          "-o${targetDir.path}",
+          archiveFile.path,
+        ],
+        runInShell: true,
+        stdoutEncoding: Utf8Codec(),
+      );
+
+      if (result.exitCode != 0) {
+        final out = result.stdout as String;
+        final err = result.stderr as String;
+        final message = "Special extraction (7z) failed!\nCode: ${result.exitCode}\nStdOut:\n$out\nStdErr:\n$err";
+        _log.severe(message);
+        throw Exception(message);
+      }
+    } else {
+      await extractFileToDisk(archiveFile.path, targetDir.path);
+    }
   }
 }

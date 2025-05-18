@@ -1027,6 +1027,11 @@ class _CreatePageState extends State<CreatePage> {
 
     await tmpDir.delete(recursive: true);
     closeDialog(context);
+
+    showNotificationDialog(
+      context,
+      text: "Compiled successfully!\nMod written to: \"$result\"",
+    );
   }
 
   String? _check() {

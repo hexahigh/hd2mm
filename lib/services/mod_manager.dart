@@ -48,6 +48,7 @@ final class ModManagerService {
   static final _patchFileRegex = RegExp(r"^[a-z0-9]{16}\.patch_[0-9]+(\.(stream|gpu_resources))?$");
   static final _patchRegex = RegExp(r"\.patch_[0-9]+");
   static final _patchIndexRegex = RegExp(r"^(?:[a-z0-9]{16}\.patch_)([0-9]+)(?:(?:\.(?:stream|gpu_resources))?)$");
+  static final _archiveFileRegex = RegExp(r"^(?<name>.+?)-(?<mod_id>\d+)-(?<version>(?:.+-?)+)-(?<file_id>\d+)\.(?<ext>\w+)$");
   final _log = Logger("ModManagerService");
   bool _initialized = false;
   _RarHandler? _rarHandler;
@@ -215,12 +216,28 @@ final class ModManagerService {
     await _extractFileToDir(archiveFile, tmpDir);
 
     _log.fine("Reading manifest");
-    final manifest = await ModManifest.fromDirectory(tmpDir);
+    var manifest = await ModManifest.fromDirectory(tmpDir);
 
     if (_mods.any((mod) => mod.manifest.getIdentifier() == manifest.getIdentifier())) {
       _log.severe("Mod with guid already exists!");
       await tmpDir.delete(recursive: true);
       return false;
+    }
+
+    if (manifest.getNexusData() == null) {
+      final match = _archiveFileRegex.firstMatch(archiveFile.path);
+      if (match != null) {
+        final data = NexusData(
+          generated: true,
+          id: int.parse(match.namedGroup("mod_id")!),
+          version: match.namedGroup("version"),
+          fileId: int.parse(match.namedGroup("file_id")!),
+        );
+        manifest = switch (manifest) {
+          ModManifestLegacy manifest => manifest.copyWith(newNexusData: data),
+          ModManifestV1 manifest => manifest.copyWith(newNexusData: data),
+        };
+      }
     }
 
     if (!await tmpDir.containsFile("manifest.json")) {

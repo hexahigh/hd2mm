@@ -91,7 +91,39 @@ sealed class ModManifest {
 
   String getDescription();
 
+  NexusData? getNexusData();
+
   ModManifest upgrade();
+}
+
+@JsonSerializable(
+  checked: true,
+  fieldRename: FieldRename.pascal,
+  disallowUnrecognizedKeys: true,
+)
+final class NexusData {
+  @JsonKey(
+    name: "_generated",
+    required: false,
+    defaultValue: false,
+  )
+  final bool generated;
+  @JsonKey(required: true)
+  final int id;
+  @JsonKey(required: false)
+  final String? version;
+  @JsonKey(
+    name: "_fileId",
+    required: false,
+  )
+  final int? fileId;
+
+  NexusData({
+    this.generated = false,
+    required this.id,
+    this.version,
+    this.fileId,
+  });
 }
 
 @JsonSerializable(
@@ -113,6 +145,8 @@ final class ModManifestLegacy extends ModManifest {
   final String? iconPath;
   @JsonKey(required: false)
   final List<String>? options;
+  @JsonKey(required: false)
+  final NexusData? nexusData;
   @JsonKey(
     name: "_generated",
     required: false,
@@ -126,12 +160,32 @@ final class ModManifestLegacy extends ModManifest {
     required this.description,
     this.iconPath,
     this.options,
+    this.nexusData,
     this.generated = false,
   }) {
     if (guid.isNil) throw FormatException("`Guid` can not be Nil!");
   }
 
   factory ModManifestLegacy.fromJson(Map<String, dynamic> json) => _$ModManifestLegacyFromJson(json);
+
+  ModManifestLegacy copyWith({
+    UuidValue? newGuid,
+    String? newName,
+    String? newDescription,
+    String? newIconPath,
+    List<String>? newOptions,
+    NexusData? newNexusData,
+  }) {
+    return ModManifestLegacy(
+      guid: newGuid ?? guid,
+      name: newName ?? name,
+      description: newDescription ?? description,
+      iconPath: newIconPath ?? iconPath,
+      options: newOptions ?? options,
+      nexusData: newNexusData ?? nexusData,
+      generated: generated,
+    );
+  }
 
   @override
   Map<String, dynamic> toJson() => _$ModManifestLegacyToJson(this);
@@ -144,6 +198,9 @@ final class ModManifestLegacy extends ModManifest {
 
   @override
   String getDescription()  => description;
+
+  @override
+  NexusData? getNexusData() => nexusData;
 
   @override
   ModManifest upgrade() {
@@ -170,6 +227,7 @@ final class ModManifestLegacy extends ModManifest {
 @JsonSerializable(
   checked: true,
   fieldRename: FieldRename.pascal,
+  disallowUnrecognizedKeys: true,
 )
 final class ModSubOption {
   @JsonKey(required: true)
@@ -244,6 +302,8 @@ final class ModManifestV1 extends ModManifest {
   final String? iconPath;
   @JsonKey(required: false)
   final List<ModOption>? options;
+  @JsonKey(required: false)
+  final NexusData? nexusData;
 
   ModManifestV1({
     this.version = 1,
@@ -252,11 +312,30 @@ final class ModManifestV1 extends ModManifest {
     required this.description,
     this.iconPath,
     this.options,
+    this.nexusData,
   }) : assert(version == 1) {
     if (guid.isNil) throw FormatException("`Guid` can not be Nil!");
   }
 
   factory ModManifestV1.fromJson(Map<String, dynamic> json) => _$ModManifestV1FromJson(json);
+
+  ModManifestV1 copyWith({
+    UuidValue? newGuid,
+    String? newName,
+    String? newDescription,
+    String? newIconPath,
+    List<ModOption>? newOptions,
+    NexusData? newNexusData,
+  }) {
+    return ModManifestV1(
+      guid: newGuid ?? guid,
+      name: newName ?? name,
+      description: newDescription ?? description,
+      iconPath: newIconPath ?? iconPath,
+      options: newOptions ?? options,
+      nexusData: newNexusData ?? nexusData,
+    );
+  }
 
   @override
   Map<String, dynamic> toJson() => _$ModManifestV1ToJson(this);
@@ -269,6 +348,9 @@ final class ModManifestV1 extends ModManifest {
 
   @override
   String getDescription()  => description;
+
+  @override
+  NexusData? getNexusData() => nexusData;
 
   @override
   ModManifest upgrade() => throw UnsupportedError("Can't upgrade!");

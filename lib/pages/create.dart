@@ -261,9 +261,13 @@ class _CreatePageState extends State<CreatePage> {
                   spacing: 5,
                   children: [
                     if (_mod.iconPathController.text.isNotEmpty)
-                      Image.file(
-                        File(_mod.iconPathController.text),
-                        fit: BoxFit.contain,
+                      SizedBox(
+                        width: 100,
+                        height: 100,
+                        child: Image.file(
+                          File(_mod.iconPathController.text),
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     Expanded(
                       child: TextField(
@@ -398,9 +402,13 @@ class _CreatePageState extends State<CreatePage> {
                         title: Row(
                           children: [
                             if (option.imagePathController.text.isNotEmpty)
-                              Image.file(
-                                File(option.imagePathController.text),
-                                fit: BoxFit.contain,
+                              SizedBox(
+                                width: 100,
+                                height: 100,
+                                child: Image.file(
+                                  File(option.imagePathController.text),
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             Expanded(
                               child: TextField(
@@ -649,9 +657,13 @@ class _CreatePageState extends State<CreatePage> {
                                   title: Row(
                                     children: [
                                       if (sub.imagePathController.text.isNotEmpty)
-                                        Image.file(
-                                          File(sub.imagePathController.text),
-                                          fit: BoxFit.contain,
+                                        SizedBox(
+                                          width: 100,
+                                          height: 100,
+                                          child: Image.file(
+                                            File(sub.imagePathController.text),
+                                            fit: BoxFit.contain,
+                                          ),
                                         ),
                                       Expanded(
                                         child: TextField(
@@ -911,6 +923,7 @@ class _CreatePageState extends State<CreatePage> {
     
     final tmpPath = path.withoutExtension(result);
     final tmpDir = Directory(tmpPath);
+    if (await tmpDir.exists()) await tmpDir.delete(recursive: true);
     await tmpDir.create(recursive: true);
 
     try {
@@ -918,6 +931,7 @@ class _CreatePageState extends State<CreatePage> {
       final options = <ModOption>[];
 
       if (_mod.iconPathController.text.isNotEmpty) {
+        iconPath = path.basename(_mod.iconPathController.text);
         final iconFile = File(_mod.iconPathController.text);
         await iconFile.copy(path.join(tmpPath, path.basename(iconFile.path)));
       }
@@ -929,7 +943,7 @@ class _CreatePageState extends State<CreatePage> {
         final subOptions = <ModSubOption>[];
 
         final optDir = Directory(path.join(tmpPath, optName));
-        await optDir.create();
+        await optDir.create(recursive: true);
         
         if (opt.imagePathController.text.isNotEmpty) {
           final imageFile = File(opt.imagePathController.text);
@@ -950,8 +964,11 @@ class _CreatePageState extends State<CreatePage> {
           String? subImage;
           final subIncludes = <String>[];
 
+          final subDir = Directory(path.join(tmpPath, optName, subName));
+          await subDir.create(recursive: true);
+
           if (sub.imagePathController.text.isNotEmpty) {
-            final imageFile = File(opt.imagePathController.text);
+            final imageFile = File(sub.imagePathController.text);
             subImage = path.join(optName, subName, path.basename(imageFile.path));
             await imageFile.copy(path.join(tmpPath, subImage));
           }
@@ -1004,6 +1021,7 @@ class _CreatePageState extends State<CreatePage> {
     final archive = createArchiveFromDirectory(tmpDir, includeDirName: false);
     final encoder = ZipEncoder();
     final zipData = encoder.encodeBytes(archive);
+    await archive.clear();
 
     await File(result).writeAsBytes(zipData);
 

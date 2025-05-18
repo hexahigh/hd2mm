@@ -11,7 +11,7 @@ GITHUB_TOKEN=
 ```
 
 ### Windows
-Run `build.bat`. Build will be located in `build/windows/runner/Release/`.
+Run `build.bat`.
 
 ### Linux
-Run `build.sh`. Build will be located in `build/linux/runner/Release/`.
+Run `build.sh`.

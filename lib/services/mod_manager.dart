@@ -223,21 +223,28 @@ final class ModManagerService {
       await tmpDir.delete(recursive: true);
       return false;
     }
+    
+    final match = _archiveFileRegex.firstMatch(archiveFile.path);
+    
+    if (match != null) {
+      final name = match.namedGroup("name");
+      manifest = switch (manifest) {
+        ModManifestLegacy manifest => manifest.copyWith(newName: name),
+        ModManifestV1 manifest => manifest.copyWith(newName: name),
+      };
+    }
 
-    if (manifest.getNexusData() == null) {
-      final match = _archiveFileRegex.firstMatch(archiveFile.path);
-      if (match != null) {
-        final data = NexusData(
-          generated: true,
-          id: int.parse(match.namedGroup("mod_id")!),
-          version: match.namedGroup("version"),
-          fileId: int.parse(match.namedGroup("file_id")!),
-        );
-        manifest = switch (manifest) {
-          ModManifestLegacy manifest => manifest.copyWith(newNexusData: data),
-          ModManifestV1 manifest => manifest.copyWith(newNexusData: data),
-        };
-      }
+    if (manifest.getNexusData() == null && match != null) {
+      final data = NexusData(
+        generated: true,
+        id: int.parse(match.namedGroup("mod_id")!),
+        version: match.namedGroup("version"),
+        fileId: int.parse(match.namedGroup("file_id")!),
+      );
+      manifest = switch (manifest) {
+        ModManifestLegacy manifest => manifest.copyWith(newNexusData: data),
+        ModManifestV1 manifest => manifest.copyWith(newNexusData: data),
+      };
     }
 
     if (!await tmpDir.containsFile("manifest.json")) {

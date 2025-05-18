@@ -151,7 +151,21 @@ final class _ModsPageState extends State<ModsPage> {
                 isExpanded: true,
                 items: _manager.profiles.map((profile) => DropdownMenuItem(
                   value: profile,
-                  child: Text(profile.name),
+                  child: Row(
+                    children: [
+                      Text(profile.name),
+                      if (_manager.deployedProfile == profile)
+                        ...[
+                          const Spacer(),
+                          Text(
+                            "Deployed",
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                    ],
+                  ),
                 ))
                 .toList(),
                 value: _manager.activeProfile,
@@ -388,6 +402,7 @@ final class _ModsPageState extends State<ModsPage> {
       );
       return;
     }
+    setState(() { /* update UI */ });
 
     closeDialog(context);
     showNotificationDialog(

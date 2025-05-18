@@ -39,6 +39,10 @@ final class ModManagerService {
     _profiles.active = i;
   }
 
+  Profile? get deployedProfile => _profiles.deployed != null
+    ? _profiles.profiles[_profiles.deployed!]
+    : null;
+
   UnmodifiableListView<Mod> get mods => UnmodifiableListView(_mods);
 
   UnmodifiableListView<Profile> get profiles => UnmodifiableListView(_profiles.profiles);
@@ -292,6 +296,7 @@ final class ModManagerService {
 
     await Future.wait(list);
 
+    _profiles.deployed = null;
     _log.info("Purge complete.");
   }
 
@@ -455,6 +460,7 @@ final class ModManagerService {
       }
     }
 
+    _profiles.deployed = _profiles.active;
     _log.info("Deployment successful.");
   }
 

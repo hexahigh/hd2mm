@@ -25,9 +25,10 @@ final class Profile {
 )
 final class ProfileData {
   int active;
+  int? deployed;
   final List<Profile> profiles;
 
-  ProfileData(this.active, this.profiles);
+  ProfileData(this.active, this.profiles, [this.deployed]);
 
   factory ProfileData.fromJson(Map<String, dynamic> json) => _$ProfileDataFromJson(json);
 

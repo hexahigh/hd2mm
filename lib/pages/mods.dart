@@ -109,7 +109,7 @@ final class _ModsPageState extends State<ModsPage> {
                   ),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: null,//() => launchUrlString("https://github.com/teutinsa/hd2mm"),
+                      onPressed: () => launchUrlString("https://github.com/teutinsa/hd2mm"),
                       child: ImageIcon(
                         AssetImage("assets/images/github.png"),
                         size: 25,
@@ -125,7 +125,7 @@ final class _ModsPageState extends State<ModsPage> {
                 label: Text("Help"),
               ),
               ElevatedButton.icon(
-                onPressed: null,//() => launchUrlString("https://github.com/teutinsa/hd2mm/issues/new"),
+                onPressed: () => launchUrlString("https://github.com/teutinsa/hd2mm/issues/new"),
                 icon: const Icon(Icons.bug_report),
                 label: Text("Report Bug"),
               ),

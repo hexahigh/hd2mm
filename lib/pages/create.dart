@@ -783,7 +783,7 @@ class _CreatePageState extends State<CreatePage> {
             ),
             Spacer(),
             ElevatedButton.icon(
-              onPressed: _preview,
+              onPressed: null, //_preview,
               icon: const Icon(Icons.remove_red_eye),
               label: Text("Preview"),
             ),

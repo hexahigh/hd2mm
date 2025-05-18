@@ -1,7 +1,7 @@
 name: hd2mm
 description: "A new Flutter project."
 publish_to: 'none'
-version: 2.0.0-preview1-create
+version: 2.0.0-preview2
 
 environment:
   sdk: ^3.7.2

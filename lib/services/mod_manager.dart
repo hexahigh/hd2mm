@@ -308,7 +308,6 @@ final class ModManagerService {
     final dataDir = await _settings.gamePath!.tryGetDirectory("data");
     if (dataDir == null) throw Exception("Data directory not found!");
 
-    await save();
     await purge();
 
     _log.fine("Collecting mods");
@@ -461,6 +460,8 @@ final class ModManagerService {
     }
 
     _profiles.deployed = _profiles.active;
+    await save();
+    
     _log.info("Deployment successful.");
   }
 

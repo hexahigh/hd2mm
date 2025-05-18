@@ -208,7 +208,7 @@ final class ModManagerService {
     _log.info("Attempting to add mod from \"${path.basename(archiveFile.path)}\".");
 
     final tmpDir = Directory(path.join(_settings.tempPath.path, path.basenameWithoutExtension(archiveFile.path)));
-    _log.fine("Creating clean directory \"${tmpDir.path}\"");
+    _log.fine("Creating clean temporary directory \"${tmpDir.path}\"");
     if (await tmpDir.exists()) await tmpDir.delete(recursive: true);
     await tmpDir.create(recursive: true);
 
@@ -226,12 +226,9 @@ final class ModManagerService {
     
     final match = _archiveFileRegex.firstMatch(archiveFile.path);
     
-    if (match != null) {
+    if (manifest case ModManifestLegacy(generated: final gen) when gen && match != null) {
       final name = match.namedGroup("name");
-      manifest = switch (manifest) {
-        ModManifestLegacy manifest => manifest.copyWith(newName: name),
-        ModManifestV1 manifest => manifest.copyWith(newName: name),
-      };
+      manifest = manifest.copyWith(newName: name);
     }
 
     if (manifest.getNexusData() == null && match != null) {

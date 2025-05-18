@@ -124,6 +124,10 @@ final class NexusData {
     this.version,
     this.fileId,
   });
+
+  factory NexusData.fromJson(Map<String, dynamic> json) => _$NexusDataFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NexusDataToJson(this);
 }
 
 @JsonSerializable(

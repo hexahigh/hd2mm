@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:json5/json5.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +14,7 @@ import 'package:archive/archive_io.dart';
 import '../helpers/dialog.dart';
 import '../helpers/file_converter.dart';
 import '../helpers/text_converter.dart';
+import '../models/mod_manifest.dart';
 
 part 'create.g.dart';
 
@@ -153,6 +156,8 @@ class CreatePage extends StatefulWidget {
 
 class _CreatePageState extends State<CreatePage> {
   static final _patchFileRegex = RegExp(r"^[a-z0-9]{16}\.patch_[0-9]+(\.(stream|gpu_resources))?$");
+  static final _nameRegex = RegExp(r"[A-Za-z0-9._\- ()]+");
+  final _log = Logger("CreatePage");
   var _mod = _ModProject.empty();
 
   @override
@@ -219,6 +224,9 @@ class _CreatePageState extends State<CreatePage> {
                     errorText: _mod.nameError,
                     border: OutlineInputBorder(),
                   ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(_nameRegex),
+                  ],
                   onChanged: (value) {
                     value = value.trim();
                     if (value.isEmpty) {
@@ -309,6 +317,9 @@ class _CreatePageState extends State<CreatePage> {
                         errorText: option.nameError,
                         border: OutlineInputBorder(),
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(_nameRegex),
+                      ],
                       onChanged: (value) {
                         value = value.trim();
                         if (value.isEmpty) {
@@ -550,6 +561,9 @@ class _CreatePageState extends State<CreatePage> {
                                   errorText: sub.nameError,
                                   border: OutlineInputBorder(),
                                 ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(_nameRegex),
+                                ],
                                 onChanged: (value) {
                                   value = value.trim();
                                   if (value.isEmpty) {
@@ -868,6 +882,16 @@ class _CreatePageState extends State<CreatePage> {
   }
 
   Future<void> _compile() async {
+    final error = _check();
+    if (error != null) {
+      showNotificationDialog(
+        context,
+        text: error,
+        type: NotificationType.error,
+      );
+      return;
+    }
+
     var result = await FilePicker.platform.saveFile(
       allowedExtensions: const [ "zip" ],
       dialogTitle: "Save project",
@@ -878,7 +902,7 @@ class _CreatePageState extends State<CreatePage> {
 
     showWaitDialog(
       context,
-      title: "Saving",
+      title: "Compiling",
     );
 
     if (path.extension(result) != ".zip") {
@@ -889,7 +913,93 @@ class _CreatePageState extends State<CreatePage> {
     final tmpDir = Directory(tmpPath);
     await tmpDir.create(recursive: true);
 
-    
+    try {
+      String? iconPath;
+      final options = <ModOption>[];
+
+      if (_mod.iconPathController.text.isNotEmpty) {
+        final iconFile = File(_mod.iconPathController.text);
+        await iconFile.copy(path.join(tmpPath, path.basename(iconFile.path)));
+      }
+
+      for (final opt in _mod.options) {
+        final optName = opt.nameController.text.trim();
+        String? optImage;
+        final optIncludes = <String>[];
+        final subOptions = <ModSubOption>[];
+
+        final optDir = Directory(path.join(tmpPath, optName));
+        await optDir.create();
+        
+        if (opt.imagePathController.text.isNotEmpty) {
+          final imageFile = File(opt.imagePathController.text);
+          optImage = path.join(optName, path.basename(imageFile.path));
+          await imageFile.copy(path.join(tmpPath, optImage));
+        }
+
+        if (opt.activeIncludes) {
+          for (final incFile in opt.includeFiles) {
+            final incPath = path.join(optName, path.basename(incFile.path));
+            await incFile.copy(path.join(tmpPath, incPath));
+            optIncludes.add(incPath);
+          }
+        }
+
+        for (final sub in opt.subOptions) {
+          final subName = sub.nameController.text.trim();
+          String? subImage;
+          final subIncludes = <String>[];
+
+          if (sub.imagePathController.text.isNotEmpty) {
+            final imageFile = File(opt.imagePathController.text);
+            subImage = path.join(optName, subName, path.basename(imageFile.path));
+            await imageFile.copy(path.join(tmpPath, subImage));
+          }
+
+          for (final incFile in sub.includeFiles) {
+            final incPath = path.join(optName, subName, path.basename(incFile.path));
+            await incFile.copy(path.join(tmpPath, incPath));
+            subIncludes.add(incPath);
+          }
+
+          subOptions.add(ModSubOption(
+            name: subName,
+            description: sub.descriptionController.text,
+            image: subImage,
+            include: subIncludes,
+          ));
+        }
+
+        options.add(ModOption(
+          name: optName,
+          description: opt.descriptionController.text,
+          image: optImage,
+          include: optIncludes.isEmpty ? null : optIncludes,
+          subOptions: subOptions.isEmpty ? null : subOptions,
+        ));
+      }
+
+      final manifest = ModManifestV1(
+        guid: UuidValue.withValidation(_mod.guidController.text, ValidationMode.nonStrict),
+        name: _mod.nameController.text,
+        description: _mod.descriptionController.text,
+        iconPath: iconPath,
+        options: options.isEmpty ? null : options,
+      );
+
+      final json = manifest.toJson();
+      final content = jsonEncode(json);
+      await File(path.join(tmpPath, "manifest.json")).writeAsString(content);
+    } on Exception catch (e) {
+      closeDialog(context);
+      _log.severe("Compile error!", e);
+      showNotificationDialog(
+        context,
+        text: "Compile error!\n$e",
+        type: NotificationType.error,
+      );
+      return;
+    }
 
     final archive = createArchiveFromDirectory(tmpDir, includeDirName: false);
     final encoder = ZipEncoder();
@@ -899,5 +1009,19 @@ class _CreatePageState extends State<CreatePage> {
 
     await tmpDir.delete(recursive: true);
     closeDialog(context);
+  }
+
+  String? _check() {
+    if (_mod.guidError != null) return _mod.guidError;
+    if (_mod.nameError != null) return _mod.nameError;
+    for (final opt in _mod.options) {
+      if (opt.nameError != null) return opt.nameError;
+      if (opt.includeError != null) return opt.includeError;
+      for (final sub in opt.subOptions) {
+        if (sub.nameError != null) return sub.nameError;
+        if (sub.includeError != null) return sub.includeError; 
+      }
+    }
+    return null;
   }
 }

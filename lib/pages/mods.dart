@@ -120,7 +120,7 @@ final class _ModsPageState extends State<ModsPage> {
               ),
               Spacer(),
               ElevatedButton.icon(
-                onPressed: null,//() => Navigator.pushNamed(context, "/help"),
+                onPressed: () => Navigator.pushNamed(context, "/help"),
                 icon: const Icon(Icons.help_outline),
                 label: Text("Help"),
               ),
@@ -384,6 +384,7 @@ final class _ModsPageState extends State<ModsPage> {
       );
       return;
     }
+    setState(() { /* update UI */ });
 
     closeDialog(context);
   }

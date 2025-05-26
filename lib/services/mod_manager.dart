@@ -52,7 +52,8 @@ final class ModManagerService {
   static final _patchFileRegex = RegExp(r"^[a-z0-9]{16}\.patch_[0-9]+(\.(stream|gpu_resources))?$");
   static final _patchRegex = RegExp(r"\.patch_[0-9]+");
   static final _patchIndexRegex = RegExp(r"^(?:[a-z0-9]{16}\.patch_)([0-9]+)(?:(?:\.(?:stream|gpu_resources))?)$");
-  static final _archiveFileRegex = RegExp(r"^(?<name>.+?)-(?<mod_id>\d+)-(?<version>(?:.+-?)+)-(?<file_id>\d+)\.(?<ext>\w+)$");
+  // This Regex was a stupid idea! I hate it! God, why did I decide on using it...
+  static final _archiveFileRegex = RegExp(r"^(?<name>[a-zA-Z0-9-]+?)-(?<mod_id>(?!0)\d+)-(?<version>[0-9-]+[a-zA-Z0-9]+?)-(?<file_id>\d+)\.(?<ext>\w+)$");
   final _log = Logger("ModManagerService");
   bool _initialized = false;
   _RarHandler? _rarHandler;
@@ -228,7 +229,7 @@ final class ModManagerService {
       return false;
     }
     
-    final match = _archiveFileRegex.firstMatch(archiveFile.path);
+    final match = _archiveFileRegex.firstMatch(path.basename(archiveFile.path));
     
     if (manifest case ModManifestLegacy(generated: final gen) when gen && match != null) {
       final name = match.namedGroup("name");

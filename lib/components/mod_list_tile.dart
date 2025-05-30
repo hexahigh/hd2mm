@@ -26,7 +26,7 @@ class _ModListTileState extends State<ModListTile> {
     try {
       final mod = widget.mod;
       final data = widget.data;
-
+      
       return switch (mod.manifest) {
         ModManifestLegacy manifest => ListTile(
           key: ObjectKey(manifest.guid),
@@ -253,13 +253,18 @@ class _ModListTileState extends State<ModListTile> {
           ),
       };
     } catch (e, s) {
-      return ListTile(
+      return ExpansionTile(
+        dense: true,
         title: Text(
-          e.toString(),
+          "Mod display error!",
           style: TextStyle(
             color: Colors.red,
           ),
         ),
+        subtitle: Text(e.toString()),
+        children: [
+          Text(s.toString()),
+        ],
       );
     }
   }

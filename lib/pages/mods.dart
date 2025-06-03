@@ -31,7 +31,16 @@ final class _ModsPageState extends State<ModsPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _load()
+        .catchError((err) {
+          Navigator.pushReplacementNamed(
+            context,
+            "/error",
+            arguments: err as Object,
+          );
+        });
+    });
   }
 
   @override
@@ -88,11 +97,11 @@ final class _ModsPageState extends State<ModsPage> {
                   label: Text("Create"),
                 ),
               ElevatedButton(
-                onPressed: null,
+                onPressed: _import,
                 child: Text("Import"),
               ),
               ElevatedButton(
-                onPressed: null,
+                onPressed: _export,
                 child: Text("Export"),
               ),
               Row(
@@ -478,5 +487,32 @@ final class _ModsPageState extends State<ModsPage> {
         type: NotificationType.error,
       );
     }
+  }
+
+  Future<void> _import() async {
+    final result = await FilePicker.platform.pickFiles(
+      dialogTitle: "",
+      type: FileType.custom,
+      allowedExtensions: const [ ".zip" ],
+      lockParentWindow: true,
+    );
+
+    if (result == null) return;
+
+    
+  }
+
+  Future<void> _export() async {
+    final result = await FilePicker.platform.saveFile(
+      dialogTitle: "",
+      fileName: "${_manager.activeProfile.name}_export.zip",
+      type: FileType.custom,
+      allowedExtensions: const [ ".zip" ],
+      lockParentWindow: true,
+    );
+
+    if (result == null) return;
+
+    
   }
 }

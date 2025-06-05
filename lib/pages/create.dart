@@ -953,8 +953,8 @@ class _CreatePageState extends State<CreatePage> {
 
         if (opt.activeIncludes) {
           for (final incFile in opt.includeFiles) {
-            final incPath = path.join(optName, path.basename(incFile.path));
-            await incFile.copy(path.join(tmpPath, incPath));
+            final incPath = path.join(optName);
+            await incFile.copy(path.join(tmpPath, incPath, path.basename(incFile.path)));
             optIncludes.add(incPath);
           }
         }
@@ -974,8 +974,8 @@ class _CreatePageState extends State<CreatePage> {
           }
 
           for (final incFile in sub.includeFiles) {
-            final incPath = path.join(optName, subName, path.basename(incFile.path));
-            await incFile.copy(path.join(tmpPath, incPath));
+            final incPath = path.join(optName, subName);
+            await incFile.copy(path.join(tmpPath, incPath, path.basename(incFile.path)));
             subIncludes.add(incPath);
           }
 

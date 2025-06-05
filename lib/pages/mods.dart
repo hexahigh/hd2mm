@@ -80,7 +80,7 @@ final class _ModsPageState extends State<ModsPage> {
         );
       } else {
         final sideBar = SizedBox(
-          width: 200,
+          width: 220,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: 3,
@@ -128,20 +128,35 @@ final class _ModsPageState extends State<ModsPage> {
                 ],
               ),
               Spacer(),
-              ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, "/help"),
-                icon: const Icon(Icons.help_outline),
-                label: Text("Help"),
+              Row(
+                spacing: 3,
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, "/help"),
+                      icon: const Icon(Icons.help_outline),
+                      label: Text("Help"),
+                    ),
+                  ),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, "/about"),
+                      icon: const Icon(Icons.info_outline),
+                      label: Text("About"),
+                    ),
+                  ),
+                ],
               ),
+              if (_settings.developerMode)
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pushNamed(context, "/logs"),
+                  icon: const Icon(Icons.list),
+                  label: Text("Logs"),
+                ),
               ElevatedButton.icon(
                 onPressed: () => launchUrlString("https://github.com/teutinsa/hd2mm/issues/new"),
                 icon: const Icon(Icons.bug_report),
                 label: Text("Report Bug"),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, "/about"),
-                icon: const Icon(Icons.info_outline),
-                label: Text("About"),
               ),
               ElevatedButton.icon(
                 onPressed: _navigateToSettings,
@@ -499,7 +514,7 @@ final class _ModsPageState extends State<ModsPage> {
 
     if (result == null) return;
 
-    
+    _manager.import(File(result!));
   }
 
   Future<void> _export() async {
@@ -513,6 +528,6 @@ final class _ModsPageState extends State<ModsPage> {
 
     if (result == null) return;
 
-    
+    _manager.export(File(result!));
   }
 }

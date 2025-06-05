@@ -2,15 +2,18 @@ import 'dart:io';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:hd2mm/providers/logs.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:json5/json5.dart';
 import 'package:logging/logging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 import 'helpers/dialog.dart';
 import 'models/settings.dart';
 import 'pages/about.dart';
 import 'pages/create.dart';
 import 'pages/help.dart';
+import 'pages/logs.dart';
 import 'pages/mods.dart';
 import 'pages/settings.dart';
 import 'pages/error.dart';
@@ -84,7 +87,7 @@ void main() {
   runApp(const Hd2mmApp());
 
   doWhenWindowReady(() {
-    const initialSize = Size(900, 600);
+    const initialSize = Size(1000, 700);
     appWindow.minSize = initialSize;
     appWindow.size = initialSize;
     appWindow.alignment = Alignment.center;
@@ -98,51 +101,55 @@ class Hd2mmApp extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: "Helldivers 2 Mod Manager",
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ThemeData.dark(useMaterial3: true).colorScheme,
-        fontFamily: "FS Sinclair",
-      ),
-      home: Scaffold(
-        body: WindowBorder(
-          color: Theme.of(context).dividerColor,
-          width: 4,
-          child: Column(
-            children: [
-              _TitleBar(),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                child: Container(
-                  height: 3,
-                  color: Theme.of(context).dividerColor,
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(5),
-                  child: Navigator(
-                    initialRoute: "/mods",
-                    onGenerateRoute: (RouteSettings settings) {
-                      Widget page = switch (settings.name) {
-                        "/mods" => const ModsPage(),
-                        "/settings" => const SettingsPage(),
-                        "/create" => CreatePage(),
-                        "/help" => HelpPage(),
-                        "/about" => AboutPage(),
-                        "/error" => ErrorPage(arguments: settings.arguments),
-                        _ => const Placeholder(color: Colors.red),
-                      };
-                      return MaterialPageRoute(
-                        builder: (_) => page,
-                        settings: settings,
-                      );
-                    },
+    return ChangeNotifierProvider.value(
+      value: LogsProvider(),
+      child: MaterialApp(
+        title: "Helldivers 2 Mod Manager",
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ThemeData.dark(useMaterial3: true).colorScheme,
+          fontFamily: "FS Sinclair",
+        ),
+        home: Scaffold(
+          body: WindowBorder(
+            color: Theme.of(context).dividerColor,
+            width: 4,
+            child: Column(
+              children: [
+                _TitleBar(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Container(
+                    height: 3,
+                    color: Theme.of(context).dividerColor,
                   ),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(5),
+                    child: Navigator(
+                      initialRoute: "/mods",
+                      onGenerateRoute: (RouteSettings settings) {
+                        Widget page = switch (settings.name) {
+                          "/mods" => const ModsPage(),
+                          "/settings" => const SettingsPage(),
+                          "/create" => CreatePage(),
+                          "/help" => HelpPage(),
+                          "/about" => AboutPage(),
+                          "/error" => ErrorPage(arguments: settings.arguments),
+                          "/logs" => LogsPage(),
+                          _ => const Placeholder(color: Colors.red),
+                        };
+                        return MaterialPageRoute(
+                          builder: (_) => page,
+                          settings: settings,
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
